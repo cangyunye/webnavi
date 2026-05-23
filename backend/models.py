@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, SmallInteger
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, SmallInteger, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -140,5 +140,76 @@ class Credential(Base):
     username = Column(String(100), nullable=False)
     password = Column(String(255), nullable=False)
     description = Column(Text)
+    create_time = Column(DateTime, server_default=func.now())
+    update_time = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class Node(Base):
+    __tablename__ = "nodes"
+
+    id = Column(String(50), primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    hostname = Column(String(100))
+    address = Column(String(50), nullable=False)
+    port = Column(Integer, default=22)
+    user = Column(String(50), default="root")
+    status = Column(String(20), default="active")
+    groups = Column(JSON, default=[])
+    labels = Column(JSON, default={})
+    ssh_key = Column(String(500))
+    ssh_password = Column(String(255))
+    proxy_jump = Column(String(200))
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class ApiKey(Base):
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    key_name = Column(String(100), nullable=False)
+    key_hash = Column(String(255), nullable=False)
+    key_prefix = Column(String(20), nullable=False)
+    scopes = Column(JSON, default=[])
+    is_active = Column(SmallInteger, default=1)
+    expires_at = Column(DateTime, nullable=True)
+    last_used_at = Column(DateTime, nullable=True)
+    create_time = Column(DateTime, server_default=func.now())
+    update_time = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User")
+
+
+class ApiKeyLog(Base):
+    __tablename__ = "api_key_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    api_key_id = Column(Integer, ForeignKey("api_keys.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    endpoint = Column(String(500), nullable=False)
+    method = Column(String(20), nullable=False)
+    ip_address = Column(String(100))
+    user_agent = Column(String(500))
+    request_body = Column(JSON)
+    response_status = Column(Integer)
+    created_at = Column(DateTime, server_default=func.now())
+
+    api_key = relationship("ApiKey")
+    user = relationship("User")
+
+
+class EnumItem(Base):
+    __tablename__ = "enum_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    enum_type = Column(String(50), nullable=False, index=True)
+    enum_value = Column(String(50), nullable=False)
+    enum_label = Column(String(100), nullable=False)
+    description = Column(String(200))
+    sort_order = Column(Integer, default=0)
+    is_active = Column(SmallInteger, default=1)
+    color = Column(String(20))
+    icon = Column(String(50))
     create_time = Column(DateTime, server_default=func.now())
     update_time = Column(DateTime, server_default=func.now(), onupdate=func.now())

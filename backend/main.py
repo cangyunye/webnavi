@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse
 import os
 
 from config import settings
-from routers import categories, resources, auth, admin
+from routers import categories, resources, auth, admin, nodes, api_keys, enum_items
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -27,6 +27,9 @@ app.include_router(categories.router)
 app.include_router(resources.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
+app.include_router(nodes.router)
+app.include_router(api_keys.router)
+app.include_router(enum_items.router)
 
 
 @app.get("/")

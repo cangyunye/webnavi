@@ -28,7 +28,7 @@ INSERT INTO categories (name, icon, sort_order) VALUES
 ('数据库', 'icon-database', 2),
 ('研发机器', 'icon-dev-machine', 3),
 ('AI', 'icon-ai', 4),
-('移动通信', 'icon-mobile', 5),
+('测试', 'icon-test', 5),
 ('软件资源', 'icon-software', 6),
 ('运维', 'icon-ops', 7);
 

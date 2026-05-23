@@ -5,7 +5,7 @@ const CATEGORY_ICONS = {
     '数据库': '🗄️',
     '研发机器': '🖥️',
     'AI': '🤖',
-    '移动通信': '📱',
+    '测试': '🧪',
     '软件资源': '💿',
     '运维': '⚙️'
 };
@@ -262,7 +262,7 @@ function handleRegister() {
 }
 
 function checkCategoryPermission(categoryName) {
-    const guest_categories = ['学习', 'AI', '软件资源', '移动通信'];
+    const guest_categories = ['学习', 'AI', '软件资源', '测试'];
     
     if (!currentUser || currentUser.role === 'guest') {
         return guest_categories.includes(categoryName);
@@ -306,6 +306,16 @@ function renderNavMenu() {
             </div>
         `;
     }).join('');
+    
+    // 添加 API Key 管理菜单项（所有登录用户可见）
+    if (currentUser && currentUser.role !== 'guest') {
+        menuHtml += `
+            <div class="nav-item" data-name="api_keys" onclick="showApiKeysPage()">
+                <span class="nav-icon">🔐</span>
+                <span class="nav-text">API Key 管理</span>
+            </div>
+        `;
+    }
     
     // 添加管理菜单项（仅管理员可见）
     if (currentUser && currentUser.role === 'admin') {
@@ -393,7 +403,7 @@ async function loadCategoryData(categoryId, categoryName) {
             await loadDevMachines();
         } else if (categoryName === '数据库') {
             await loadDbInstances();
-        } else if (['学习', 'AI', '软件资源', '移动通信', '运维'].includes(categoryName)) {
+        } else if (['学习', 'AI', '软件资源', '测试', '运维'].includes(categoryName)) {
             await loadResources(parseInt(categoryId));
         } else {
             contentBody.innerHTML = `
@@ -1601,4 +1611,270 @@ async function resetUserPassword(userId) {
     } catch (e) {
         alert(e.message);
     }
+}
+
+// ========== API Key 管理功能 ==========
+
+let apiKeysList = [];
+
+async function showApiKeysPage() {
+    currentCategory = null;
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    const apiKeyNavItem = Array.from(document.querySelectorAll('.nav-item')).find(i => i.dataset.name === 'api_keys');
+    if (apiKeyNavItem) apiKeyNavItem.classList.add('active');
+    document.getElementById('page-title').textContent = 'API Key 管理';
+    
+    try {
+        apiKeysList = await apiRequest(`${API_BASE}/api-keys`);
+        renderApiKeysTable();
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+function renderApiKeysTable() {
+    const contentBody = document.getElementById('content-body');
+    document.getElementById('header-actions').innerHTML = `
+        <button class="btn btn-primary" onclick="showCreateApiKeyModal()">创建 API Key</button>
+    `;
+    
+    const tableHtml = `
+        <div class="data-panel">
+            <div class="data-table-wrapper">
+                <table class="data-table" id="api-keys-table">
+                    <thead>
+                        <tr>
+                            <th>名称</th>
+                            <th>前缀</th>
+                            <th>状态</th>
+                            <th>最后使用</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${apiKeysList.length === 0 ? `
+                            <tr>
+                                <td colspan="6" class="empty-state">
+                                    暂无 API Key，点击上方按钮创建
+                                </td>
+                            </tr>
+                        ` : apiKeysList.map(key => `
+                            <tr>
+                                <td><strong>${key.key_name}</strong></td>
+                                <td><code class="api-key-prefix">${key.key_prefix}</code></td>
+                                <td><span class="status-badge ${key.is_active ? 'online' : 'offline'}"><span class="status-dot"></span>${key.is_active ? '启用' : '禁用'}</span></td>
+                                <td>${key.last_used_at ? formatDate(key.last_used_at) : '从未使用'}</td>
+                                <td>${formatDate(key.create_time)}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="showApiKeyLogs(${key.id})">日志</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteApiKey(${key.id}, '${key.key_name}')">删除</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    contentBody.innerHTML = tableHtml;
+}
+
+function showCreateApiKeyModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'create-api-key-modal';
+    
+    modal.innerHTML = `
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 class="modal-header">创建 API Key</h2>
+            <div class="form-group">
+                <label class="form-label">Key 名称 *</label>
+                <input type="text" class="form-input" id="new-api-key-name" placeholder="给这个 Key 起个名字，方便识别">
+            </div>
+            <div class="form-group">
+                <label class="form-label">过期时间（可选）</label>
+                <input type="datetime-local" class="form-input" id="new-api-key-expire">
+                <p class="form-hint">留空表示永不过期</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">备注（可选）</label>
+                <textarea class="form-input form-textarea" id="new-api-key-desc" placeholder="可选备注信息"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeCreateApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="createApiKey()">创建</button>
+            </div>
+        </div>
+    `;
+    modal.addEventListener('click', () => closeCreateApiKeyModal());
+    document.body.appendChild(modal);
+}
+
+function closeCreateApiKeyModal() {
+    const modal = document.getElementById('create-api-key-modal');
+    if (modal) modal.remove();
+}
+
+async function createApiKey() {
+    const name = document.getElementById('new-api-key-name').value.trim();
+    const expireValue = document.getElementById('new-api-key-expire').value;
+    
+    if (!name) {
+        alert('请输入 Key 名称');
+        return;
+    }
+    
+    const data = {
+        key_name: name,
+        scopes: []
+    };
+    
+    if (expireValue) {
+        data.expires_at = new Date(expireValue).toISOString();
+    }
+    
+    try {
+        const result = await apiRequest(`${API_BASE}/api-keys`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+        
+        closeCreateApiKeyModal();
+        showApiKeyCreatedModal(result);
+        await showApiKeysPage();
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+function showApiKeyCreatedModal(result) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'api-key-created-modal';
+    
+    modal.innerHTML = `
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 class="modal-header">✅ API Key 创建成功</h2>
+            <div class="warning-box">
+                <p>⚠️ 请立即复制并保存此 Key！它只会显示这一次。</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">API Key</label>
+                <div class="api-key-display">
+                    <input type="text" class="form-input" id="created-api-key" value="${result.api_key}" readonly>
+                    <button class="btn btn-primary btn-sm" onclick="copyApiKey()">复制</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Key 名称</label>
+                <input type="text" class="form-input" value="${result.key_name}" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">前缀（用于识别）</label>
+                <input type="text" class="form-input" value="${result.key_prefix}" readonly>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeApiKeyCreatedModal()">已保存</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function copyApiKey() {
+    const input = document.getElementById('created-api-key');
+    input.select();
+    document.execCommand('copy');
+    alert('已复制到剪贴板！');
+}
+
+function closeApiKeyCreatedModal() {
+    const modal = document.getElementById('api-key-created-modal');
+    if (modal) modal.remove();
+}
+
+async function deleteApiKey(id, name) {
+    if (!confirm(`确定要删除 API Key "${name}" 吗？\n删除后将无法恢复。`)) return;
+    
+    try {
+        await apiRequest(`${API_BASE}/api-keys/${id}`, {
+            method: 'DELETE'
+        });
+        await showApiKeysPage();
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+let currentViewingApiKeyId = null;
+let apiKeyLogs = [];
+
+async function showApiKeyLogs(id) {
+    currentViewingApiKeyId = id;
+    const apiKey = apiKeysList.find(k => k.id === id);
+    
+    try {
+        apiKeyLogs = await apiRequest(`${API_BASE}/api-keys/${id}/logs`);
+        renderApiKeyLogsModal(apiKey);
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+function renderApiKeyLogsModal(apiKey) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'api-key-logs-modal';
+    
+    modal.innerHTML = `
+        <div class="modal-content large-modal" onclick="event.stopPropagation()">
+            <h2 class="modal-header">API Key 使用日志 - ${apiKey.key_name}</h2>
+            <div class="data-table-wrapper">
+                <table class="data-table" id="api-key-logs-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>方法</th>
+                            <th>端点</th>
+                            <th>IP</th>
+                            <th>状态码</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${apiKeyLogs.length === 0 ? `
+                            <tr>
+                                <td colspan="5" class="empty-state">
+                                    暂无使用记录
+                                </td>
+                            </tr>
+                        ` : apiKeyLogs.map(log => `
+                            <tr>
+                                <td>${formatDate(log.created_at)}</td>
+                                <td><code>${log.method}</code></td>
+                                <td><code class="api-endpoint">${log.endpoint}</code></td>
+                                <td>${log.ip_address || '-'}</td>
+                                <td><span class="status-code ${log.response_status >= 200 && log.response_status < 300 ? 'success' : log.response_status >= 400 ? 'error' : 'info'}">${log.response_status || '-'}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeApiKeyLogsModal()">关闭</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function closeApiKeyLogsModal() {
+    const modal = document.getElementById('api-key-logs-modal');
+    if (modal) modal.remove();
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleString('zh-CN');
 }

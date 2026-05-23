@@ -259,3 +259,121 @@ class CredentialResponse(CredentialBase):
 
     class Config:
         from_attributes = True
+
+
+class NodeBase(BaseModel):
+    name: str
+    hostname: Optional[str] = ""
+    address: str
+    port: int = 22
+    user: str = "root"
+    status: str = "active"
+    groups: List[str] = []
+    labels: dict = {}
+    ssh_key: Optional[str] = ""
+    ssh_password: Optional[str] = ""
+    proxy_jump: Optional[str] = ""
+
+
+class NodeCreate(NodeBase):
+    id: str
+
+
+class NodeResponse(NodeBase):
+    id: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class NodeListResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: List[NodeResponse]
+
+
+class APIResponse(BaseModel):
+    code: int
+    message: str
+    data: Optional[dict] = None
+
+
+class ApiKeyBase(BaseModel):
+    key_name: str
+    scopes: Optional[List[str]] = []
+    expires_at: Optional[datetime] = None
+
+
+class ApiKeyCreate(ApiKeyBase):
+    pass
+
+
+class ApiKeyResponse(ApiKeyBase):
+    id: int
+    key_prefix: str
+    is_active: int
+    last_used_at: Optional[datetime] = None
+    create_time: Optional[datetime] = None
+    update_time: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ApiKeyCreateResponse(ApiKeyResponse):
+    api_key: str  # 仅在创建时返回完整的 API Key
+
+
+class ApiKeyLogBase(BaseModel):
+    endpoint: str
+    method: str
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    request_body: Optional[dict] = None
+    response_status: Optional[int] = None
+
+
+class ApiKeyLogCreate(ApiKeyLogBase):
+    api_key_id: int
+    user_id: int
+
+
+class ApiKeyLogResponse(ApiKeyLogBase):
+    id: int
+    api_key_id: int
+    user_id: int
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class EnumItemBase(BaseModel):
+    enum_value: Optional[str] = None
+    enum_label: Optional[str] = None
+    description: Optional[str] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[int] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+
+
+class EnumItemCreate(EnumItemBase):
+    enum_type: str
+    enum_value: str
+    enum_label: str
+
+
+class EnumItemResponse(EnumItemBase):
+    id: int
+    enum_type: str
+    enum_value: str
+    enum_label: str
+    create_time: Optional[datetime] = None
+    update_time: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
