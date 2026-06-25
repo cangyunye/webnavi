@@ -27,7 +27,6 @@
           <span class="topbar-title" id="pageTitle">首页</span>
         </div>
         <div class="topbar-right" id="topbarRight">
-          <button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">🌙</button>
         </div>
       </header>
 
@@ -56,7 +55,8 @@
   <script src="js/api.js"></script>
   <script>
     initTheme();
-    const GUEST_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
+    const PUBLIC_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
+    function isRestricted(id) { return !PUBLIC_CATS[id] && (!currentUser || currentUser.role !== 'admin'); }
     let categories = [];
     let currentUser = null;
 
@@ -68,7 +68,7 @@
       const nav = document.getElementById('sidebarNav');
       nav.innerHTML = '<button class="sidebar-nav-item active" data-cat="0" onclick="goHome()"><span class="icon">🏠</span><span class="label">首页</span></button>' +
         categories.map(c => {
-          const restricted = !GUEST_CATS[c.id] && (!currentUser || currentUser.role === 'guest');
+          const restricted = isRestricted(c.id);
           return `<button class="sidebar-nav-item${restricted?' restricted':''}" data-cat="${c.id}" onclick="navigateTo(${c.id})"><span class="icon">${c.icon || '📂'}</span><span class="label">${c.name}</span></button>`;
         }).join('');
 
@@ -86,8 +86,9 @@
     function navigateTo(id) {
       const cat = categories.find(c => c.id === id);
       if (!cat) return;
-      if (!GUEST_CATS[id] && (!currentUser || currentUser.role === 'guest')) {
-        location.href = 'login.html';
+      if (isRestricted(id)) {
+        if (!currentUser) { location.href = 'login.html'; return; }
+        alert('仅管理员可访问此页面');
         return;
       }
       if (cat.name === '数据库') { location.href = 'devops.html#databases'; return; }
@@ -100,7 +101,7 @@
     function renderCategories() {
       const grid = document.getElementById('categoryGrid');
       grid.innerHTML = categories.map(c => {
-        const restricted = !GUEST_CATS[c.id] && (!currentUser || currentUser.role === 'guest');
+        const restricted = isRestricted(c.id);
         return `<div class="card category-card" onclick="navigateTo(${c.id})" style="${restricted ? 'opacity:0.55' : ''}">
           <div class="cat-bg" style="background:${c.color || '#4c8bf5'}"></div>
           <div class="cat-icon">${c.icon || '📂'}</div>
@@ -113,12 +114,15 @@
 
     function renderTopbar() {
       const right = document.getElementById('topbarRight');
+      const themeIcon = document.documentElement.classList.contains('dark-theme') ? '☀️' : '🌙';
       if (currentUser) {
-        right.innerHTML = `<span class="small">${currentUser.role === 'admin' ? '管理员' : currentUser.role === 'registered' ? '注册用户' : '访客'}</span>
+        right.innerHTML = `<button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">${themeIcon}</button>
+          <span class="small">${currentUser.role === 'admin' ? '管理员' : '注册用户'}</span>
           <div class="user-avatar" title="${currentUser.username}">${currentUser.username[0].toUpperCase()}</div>
           <button class="btn btn-ghost btn-sm" onclick="logout()">退出</button>`;
       } else {
-        right.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="location.href='login.html'">登录</button>`;
+        right.innerHTML = `<button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">${themeIcon}</button>
+          <button class="btn btn-ghost btn-sm" onclick="location.href='login.html'">登录</button>`;
       }
     }
 

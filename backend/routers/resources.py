@@ -24,14 +24,8 @@ def check_category_permission(current_user: User, category_name: str, db: Sessio
     if current_user.role == "admin":
         return True
     
-    if current_user.role == "guest":
-        guest_categories = ["学习", "AI", "软件资源", "测试", "工具"]
-        return category_name in guest_categories
-    
-    if current_user.role == "registered":
-        return True
-    
-    return False
+    public_categories = ["学习", "AI", "软件资源", "测试", "工具"]
+    return category_name in public_categories
 
 
 def machine_to_response(machine: DevMachine) -> DevMachineResponse:
@@ -275,15 +269,14 @@ def get_resources(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "guest":
-        guest_categories = ["学习", "AI", "软件资源", "测试", "工具"]
+    if current_user.role != "admin":
+        public_categories = ["学习", "AI", "软件资源", "测试", "工具"]
         from models import Category
         category = db.query(Category).filter(Category.id == category_id).first()
-        if not category or category.name not in guest_categories:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="访客用户没有访问此分类的权限，请先登录"
-            )
+        if not category or category.name not in public_categories:
+            if current_user.role == "guest":
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="访客用户没有访问此分类的权限，请先登录")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="仅管理员可访问此分类")
 
     query = db.query(Resource).filter(Resource.category_id == category_id)
 

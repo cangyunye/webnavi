@@ -103,9 +103,7 @@
             <span id="pageBreadcrumb">运维</span>
           </nav>
         </div>
-        <div class="topbar-right">
-          <button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">🌙</button>
-          <span id="topbarRight"></span>
+        <div class="topbar-right" id="topbarRight">
         </div>
       </header>
 
@@ -204,16 +202,19 @@
 
     async function init() {
       currentUser = getUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        alert('仅管理员可访问运维管理页面');
+        location.href = 'index.html';
+        return;
+      }
       renderTopbar();
       buildSidebar();
 
       try { orgs = await apiRequest('/organizations'); } catch { orgs = []; }
       try { owners = await apiRequest('/owners'); } catch { owners = []; }
 
-      if (currentUser && (currentUser.role === 'admin' || currentUser.can_edit)) {
-        document.getElementById('addMachineBtn').style.display = '';
-        document.getElementById('addDbBtn').style.display = '';
-      }
+      document.getElementById('addMachineBtn').style.display = '';
+      document.getElementById('addDbBtn').style.display = '';
 
       if (location.hash === '#databases') switchTab('databases');
       else switchTab('machines');
@@ -240,11 +241,14 @@
 
     function renderTopbar() {
       const right = document.getElementById('topbarRight');
+      const themeIcon = document.documentElement.classList.contains('dark-theme') ? '☀️' : '🌙';
       if (currentUser) {
-        right.innerHTML = `<span class="small">${currentUser.role === 'admin' ? '管理员' : '注册用户'}</span>
+        right.innerHTML = `<button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">${themeIcon}</button>
+          <span class="small">${currentUser.role === 'admin' ? '管理员' : '注册用户'}</span>
           <button class="btn btn-ghost btn-sm" onclick="logout()">退出</button>`;
       } else {
-        right.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="location.href='login.html'">登录</button>`;
+        right.innerHTML = `<button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">${themeIcon}</button>
+          <button class="btn btn-ghost btn-sm" onclick="location.href='login.html'">登录</button>`;
       }
     }
 

@@ -89,7 +89,8 @@
   <script>
     initTheme();
     const ICON_MAP = { '学习':'📚','数据库':'🗄️','研发机器':'🖥️','AI':'🤖','测试':'🧪','软件资源':'💿','运维':'⚙️','工具':'🛠️' };
-    const GUEST_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
+    const PUBLIC_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
+    function isRestricted(id) { return !PUBLIC_CATS[id] && (!currentUser || currentUser.role !== 'admin'); }
     let resources = [];
     let currentCat = null;
     let currentUser = null;
@@ -106,6 +107,14 @@
       currentCat = categories.find(c => c.id === id);
       if (!currentCat) { location.href = 'index.html'; return; }
 
+      // Check permission
+      if (isRestricted(id)) {
+        if (!currentUser) { location.href = 'login.html'; return; }
+        alert('仅管理员可访问此页面');
+        location.href = 'index.html';
+        return;
+      }
+
       document.getElementById('catIcon').textContent = ICON_MAP[currentCat.name] || '📂';
       document.getElementById('catName').textContent = currentCat.name;
       document.getElementById('catTitle').textContent = currentCat.name;
@@ -121,7 +130,7 @@
       const nav = document.getElementById('sidebarNav');
       nav.innerHTML = '<button class="sidebar-nav-item" onclick="location.href=\'index.html\'"><span class="icon">🏠</span><span class="label">首页</span></button>' +
         categories.map(c => {
-          const restricted = !GUEST_CATS[c.id] && (!currentUser || currentUser.role === 'guest');
+          const restricted = isRestricted(c.id);
           return `<button class="sidebar-nav-item${restricted?' restricted':''}${c.id===currentCat.id?' active':''}" onclick="location.href='category.html?id=${c.id}'"><span class="icon">${ICON_MAP[c.name]||'📂'}</span><span class="label">${c.name}</span></button>`;
         }).join('');
 
