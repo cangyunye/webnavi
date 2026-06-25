@@ -27,6 +27,7 @@
           <span class="topbar-title" id="pageTitle">首页</span>
         </div>
         <div class="topbar-right" id="topbarRight">
+          <button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">🌙</button>
         </div>
       </header>
 
@@ -54,6 +55,7 @@
 
   <script src="js/api.js"></script>
   <script>
+    initTheme();
     const GUEST_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
     let categories = [];
     let currentUser = null;

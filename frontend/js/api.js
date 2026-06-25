@@ -21,6 +21,23 @@ function clearAuth() {
   localStorage.removeItem('rn_user');
 }
 
+/* ---- Theme ---- */
+function themeIcon() { return document.documentElement.classList.contains('dark-theme') ? '☀️' : '🌙'; }
+
+function initTheme() {
+  const saved = localStorage.getItem('rn_theme');
+  if (saved === 'dark') document.documentElement.classList.add('dark-theme');
+  document.querySelectorAll('.theme-toggle').forEach(el => el.textContent = saved === 'dark' ? '☀️' : '🌙');
+}
+
+function toggleTheme() {
+  document.documentElement.classList.toggle('dark-theme');
+  const isDark = document.documentElement.classList.contains('dark-theme');
+  localStorage.setItem('rn_theme', isDark ? 'dark' : 'light');
+  // Update all toggle buttons on the page
+  document.querySelectorAll('.theme-toggle').forEach(el => el.textContent = isDark ? '☀️' : '🌙');
+}
+
 async function apiRequest(url, options = {}) {
   const token = getToken();
   const headers = { ...options.headers };

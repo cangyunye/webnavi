@@ -30,6 +30,7 @@
           </nav>
         </div>
         <div class="topbar-right">
+          <button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">🌙</button>
           <span class="small" id="userBadge" style="display:none">注册用户</span>
           <button class="btn btn-ghost btn-sm" id="loginBtn" onclick="location.href='login.html'">登录</button>
         </div>
@@ -86,6 +87,7 @@
 
   <script src="js/api.js"></script>
   <script>
+    initTheme();
     const ICON_MAP = { '学习':'📚','数据库':'🗄️','研发机器':'🖥️','AI':'🤖','测试':'🧪','软件资源':'💿','运维':'⚙️','工具':'🛠️' };
     const GUEST_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
     let resources = [];

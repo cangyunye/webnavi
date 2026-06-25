@@ -95,6 +95,7 @@
           </nav>
         </div>
         <div class="topbar-right">
+          <button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">🌙</button>
           <span class="small" id="userBadge">管理员</span>
         </div>
       </header>
@@ -242,6 +243,7 @@
 
   <script src="js/api.js"></script>
   <script>
+    initTheme();
     let users = [];
     let apiKeys = [];
     let credentials = [];

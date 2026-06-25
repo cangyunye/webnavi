@@ -103,7 +103,10 @@
             <span id="pageBreadcrumb">运维</span>
           </nav>
         </div>
-        <div class="topbar-right" id="topbarRight"></div>
+        <div class="topbar-right">
+          <button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">🌙</button>
+          <span id="topbarRight"></span>
+        </div>
       </header>
 
       <div class="content-area">
@@ -190,6 +193,7 @@
 
   <script src="js/api.js"></script>
   <script>
+    initTheme();
     let machines = [];
     let databases = [];
     let currentTab = 'machines';
