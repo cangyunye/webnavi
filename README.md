@@ -1,56 +1,61 @@
 # ResourceNav - 资源导航网站
 
-一个基于 Python 3.12 + FastAPI + MySQL 构建的轻量级资源导航系统。
+一个基于 Python 3.11+ + FastAPI + MySQL 构建的轻量级资源导航系统，兼具 CMDB 节点管理和运维环境管理能力。
 
 ## 功能特性
 
-### 核心功能
+### 导航与资源
 
 - **分类导航**：左侧侧边栏展示所有分类，支持收起/展开
 - **主页展示**：卡片式展示分类，点击跳转到对应分类页面
 - **资源管理**：支持添加、删除网站资源，支持按分类查看
-- **研发环境**：研发机器和数据库实例展示与管理（运维风格）
+- **8 个分类**：学习、数据库、研发机器、AI、测试、软件资源、运维、工具
+
+### 研发环境管理
+
+- **研发机器**：表格展示服务器列表，支持按环境/状态筛选，CRUD 操作
+- **数据库实例**：表格展示数据库列表，支持按类型/环境筛选，CRUD 操作
+- **组织与责任人**：管理组织和责任人，关联研发机器和数据库
+
+### CMDB 节点管理
+
+- **节点 CRUD**：`/api/v1/nodes`，支持名称/分组/标签/状态过滤
+- **双认证**：JWT Token 或 API Key
+- **API Key**：bcrypt 加密存储，支持过期时间，使用日志追踪
 
 ### 用户系统
 
 - **访客模式**：无需注册登录，可访问部分分类
 - **注册登录**：支持用户注册、登录，完整功能访问
-- **权限控制**：精细化权限管理
-- **管理员后台**：用户管理和权限分配
+- **权限控制**：可编辑/可删除/分类白名单
+- **管理员后台**：用户管理、权限分配、管理员可创建用户
+- **API Key 管理**：所有用户可创建和管理自己的 API Key
+- **枚举管理**：动态下拉选项系统（环境类型、数据库类型等）
 
 ### 权限体系
 
-系统支持多层级、精细化的权限控制：
-
 #### 角色权限
-- **访客**：学习、AI、软件资源、移动通信（仅查看）
-- **注册用户**：分类访问、资源编辑
-- **管理员**：所有功能 + 用户管理
+- **访客**：学习、AI、软件资源、测试、工具（仅查看）
+- **注册用户**：全部分类访问、资源编辑
+- **管理员**：所有功能 + 管理后台
 
 #### 操作权限
 - **可编辑权限**：`can_edit`，允许添加和修改数据
 - **可删除权限**：`can_delete`，允许删除数据
 
 #### 分类权限
-- 支持为用户设置可访问的分类列表
-- 未设置分类权限的注册用户可访问所有分类
-
-#### 覆盖范围
-权限控制覆盖：
-- 研发机器：查看、添加、修改、删除
-- 数据库实例：查看、添加、修改、删除
-- 资源：查看、添加、删除
-- 用户管理：仅管理员可访问
+- 支持为注册用户设置可访问的分类白名单
+- 未设置分类权限的注册用户可访问全部分类
 
 ## 技术栈
 
 ### 后端
 
-- **框架**：FastAPI 0.104+
-- **数据库**：MySQL 8.0+
+- **框架**：FastAPI (`fastapi[standard]`)
+- **数据库**：MySQL 8.0+ (PyMySQL)
 - **ORM**：SQLAlchemy 2.0+
-- **认证**：JWT (python-jose)
-- **密码**：passlib + bcrypt
+- **认证**：JWT (python-jose[cryptography]) + API Key (bcrypt)
+- **密码**：bcrypt 直接哈希（无需 passlib）
 
 ### 前端
 
@@ -61,16 +66,16 @@
 
 ### 前置要求
 
-- Python 3.12+
+- Python 3.11+
 - MySQL 8.0+
-- Node.js (可选，用于前端开发)
 
 ### 安装步骤
 
 #### 1. 克隆项目
 
 ```bash
-cd d:\webnavi
+git clone <repo-url>
+cd webnavi
 ```
 
 #### 2. 数据库配置
@@ -78,7 +83,16 @@ cd d:\webnavi
 初始化数据库：
 
 ```bash
-mysql -u root -p < sql/init.sql
+mycli -h 127.0.0.1 -uroot -proot123456 -e "SOURCE sql/init.sql"
+```
+
+执行额外迁移：
+
+```bash
+# API Key 和日志表
+mycli -h 127.0.0.1 -uroot -proot123456 resource_nav -e "SOURCE sql/api_keys_migration.sql"
+# 枚举项表
+mycli -h 127.0.0.1 -uroot -proot123456 resource_nav -e "SOURCE sql/enum_items_migration.sql"
 ```
 
 默认管理员账号：
@@ -87,25 +101,18 @@ mysql -u root -p < sql/init.sql
 
 #### 3. 后端配置
 
-进入后端目录：
-
 ```bash
 cd backend
-```
-
-复制配置文件：
-
-```bash
 cp .env.example .env
 ```
 
 编辑 `.env` 修改数据库连接信息：
 
 ```env
-MYSQL_HOST=localhost
+MYSQL_HOST=127.0.0.1
 MYSQL_PORT=3306
 MYSQL_USER=root
-MYSQL_PASSWORD=your_password
+MYSQL_PASSWORD=root123456
 MYSQL_DATABASE=resource_nav
 
 SECRET_KEY=your_very_secret_key_here_change_in_production
@@ -114,6 +121,10 @@ SECRET_KEY=your_very_secret_key_here_change_in_production
 安装依赖：
 
 ```bash
+# 推荐（使用 uv）
+uv sync
+
+# 或用 pip
 pip install -r requirements.txt
 ```
 
@@ -137,19 +148,23 @@ API 文档：http://localhost:8000/docs
 resource-nav/
 ├── backend/                 # 后端代码
 │   ├── routers/            # API 路由
-│   │   ├── __init__.py
 │   │   ├── auth.py        # 认证路由
-│   │   ├── admin.py       # 管理路由
+│   │   ├── admin.py       # 管理路由（用户管理、凭据）
 │   │   ├── categories.py  # 分类路由
-│   │   └── resources.py   # 资源路由
-│   ├── config.py          # 配置管理
-│   ├── database.py        # 数据库连接
-│   ├── deps.py            # 依赖注入
+│   │   ├── resources.py   # 资源/研发机器/数据库路由
+│   │   ├── nodes.py       # CMDB 节点管理
+│   │   ├── api_keys.py    # API Key 生命周期管理
+│   │   └── enum_items.py  # 枚举项管理
 │   ├── main.py            # FastAPI 应用入口
+│   ├── config.py          # 配置管理（pydantic-settings）
+│   ├── database.py        # 数据库连接
 │   ├── models.py          # SQLAlchemy 模型
 │   ├── schemas.py         # Pydantic 模型
+│   ├── deps.py            # 依赖注入（认证/权限）
+│   ├── pyproject.toml     # 项目配置
 │   ├── requirements.txt   # Python 依赖
-│   └── .env               # 环境配置
+│   ├── uv.lock            # uv 锁定文件
+│   └── .env.example       # 环境配置模板
 ├── frontend/               # 前端代码
 │   ├── css/
 │   │   └── style.css     # 样式文件
@@ -157,208 +172,103 @@ resource-nav/
 │   │   └── app.js        # 前端逻辑
 │   └── index.html        # 主页面
 ├── sql/                   # 数据库脚本
-│   └── init.sql          # 初始化脚本
+│   ├── init.sql          # 初始化脚本
+│   ├── api_keys_migration.sql
+│   ├── enum_items_migration.sql
+│   └── ...
 └── docs/                  # 文档目录
+    ├── API.md
+    ├── FEATURES.md
+    └── ...
 ```
 
-## API 文档
+## API 接口
 
-### 认证相关
+### 认证
 
-- `POST /api/auth/register` - 用户注册
-- `POST /api/auth/login` - 用户登录
-- `POST /api/auth/guest` - 访客登录
-- `GET /api/auth/me` - 获取当前用户信息
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/auth/register` | 用户注册 |
+| POST | `/api/auth/login` | 用户登录（form-data） |
+| POST | `/api/auth/guest` | 访客登录 |
+| GET | `/api/auth/me` | 获取当前用户信息 |
 
-### 分类相关
+### 分类与资源
 
-- `GET /api/categories` - 获取所有分类
-
-### 资源相关
-
-- `GET /api/resources/{category_id}` - 获取分类资源列表
-- `POST /api/resources` - 添加资源
-- `DELETE /api/resources/{resource_id}` - 删除资源
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/categories` | 获取所有分类 |
+| GET | `/api/resources/{category_id}` | 获取分类资源列表 |
+| POST | `/api/resources` | 添加资源 |
+| DELETE | `/api/resources/{resource_id}` | 删除资源 |
 
 ### 研发环境
 
-- `GET /api/dev-machines` - 获取研发机器列表
-- `GET /api/dev-machines/{machine_id}` - 获取单个研发机器
-- `POST /api/dev-machines` - 添加研发机器
-- `PUT /api/dev-machines/{machine_id}` - 更新研发机器
-- `DELETE /api/dev-machines/{machine_id}` - 删除研发机器
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET/POST | `/api/dev-machines` | 列表/添加研发机器 |
+| GET/PUT/DELETE | `/api/dev-machines/{id}` | 详情/更新/删除 |
+| GET/POST | `/api/db-instances` | 列表/添加数据库实例 |
+| GET/PUT/DELETE | `/api/db-instances/{id}` | 详情/更新/删除 |
+| GET | `/api/organizations` | 获取组织列表 |
+| GET | `/api/owners` | 获取责任人列表 |
 
-- `GET /api/db-instances` - 获取数据库实例列表
-- `GET /api/db-instances/{instance_id}` - 获取单个数据库实例
-- `POST /api/db-instances` - 添加数据库实例
-- `PUT /api/db-instances/{instance_id}` - 更新数据库实例
-- `DELETE /api/db-instances/{instance_id}` - 删除数据库实例
+### 管理后台（仅管理员）
 
-### 管理后台
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET/POST | `/api/admin/users` | 用户列表/管理员创建用户 |
+| GET | `/api/admin/users/{id}` | 用户详情 |
+| PUT | `/api/admin/users/{id}/role` | 更新角色 |
+| PUT | `/api/admin/users/{id}/status` | 启用/禁用 |
+| PUT | `/api/admin/users/{id}/actions` | 更新操作权限 |
+| PUT | `/api/admin/users/{id}/categories` | 设置分类权限 |
+| POST | `/api/admin/users/{id}/reset-password` | 重置密码 |
+| CRUD | `/api/admin/credentials` | 凭据管理 |
 
-- `GET /api/admin/users` - 获取用户列表
-- `PUT /api/admin/users/{user_id}/role` - 更新用户角色
-- `PUT /api/admin/users/{user_id}/status` - 更新用户状态
-- `GET /api/admin/users/{user_id}/permissions` - 获取用户权限
-- `POST /api/admin/users/{user_id}/permissions` - 添加用户权限
-- `DELETE /api/admin/users/{user_id}/permissions/{permission_id}` - 删除用户权限
+### CMDB 节点 / API Key
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| CRUD | `/api/v1/nodes` | 节点管理（需 JWT 或 API Key） |
+| CRUD | `/api/api-keys` | API Key 管理 |
+| GET | `/api/api-keys/{id}/logs` | API Key 使用日志 |
+
+### 枚举管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/enum-items` | 枚举项列表 |
+| GET | `/api/enum-items/types` | 所有枚举类型 |
+| GET | `/api/enum-items/{type}/options` | 下拉选项 |
+| POST/PUT/DELETE | `/api/enum-items` | 管理员管理枚举项 |
 
 详细 API 文档请查看 http://localhost:8000/docs
-
-## 数据库设计
-
-### users 表
-
-用户表，存储用户信息。
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | INT | 主键 |
-| username | VARCHAR(50) | 用户名，唯一 |
-| email | VARCHAR(100) | 邮箱，唯一 |
-| password_hash | VARCHAR(255) | 密码哈希 |
-| role | VARCHAR(20) | 角色 (guest/registered/admin) |
-| is_active | TINYINT | 是否激活 |
-| can_edit | TINYINT | 是否可编辑 |
-| can_delete | TINYINT | 是否可删除 |
-| create_time | DATETIME | 创建时间 |
-| update_time | DATETIME | 更新时间 |
-
-### categories 表
-
-分类表。
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | INT | 主键 |
-| name | VARCHAR(50) | 分类名称 |
-| icon | VARCHAR(100) | 图标标识 |
-| sort_order | INT | 排序 |
-| create_time | DATETIME | 创建时间 |
-
-### resources 表
-
-网站资源表。
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | INT | 主键 |
-| category_id | INT | 分类 ID (外键) |
-| name | VARCHAR(100) | 资源名称 |
-| url | VARCHAR(500) | 资源链接 |
-| description | TEXT | 资源描述 |
-| status | TINYINT | 状态 |
-| create_time | DATETIME | 创建时间 |
-| update_time | DATETIME | 更新时间 |
-
-### dev_machines 表
-
-研发机器表。
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | INT | 主键 |
-| name | VARCHAR(100) | 机器名称 |
-| ip | VARCHAR(50) | IP地址 |
-| port | INT | 端口 |
-| hostname | VARCHAR(100) | 主机名 |
-| cpu | VARCHAR(50) | CPU信息 |
-| memory | VARCHAR(50) | 内存信息 |
-| disk | VARCHAR(100) | 磁盘信息 |
-| os | VARCHAR(100) | 操作系统 |
-| status | TINYINT | 状态 (0/1) |
-| environment | VARCHAR(50) | 环境 (dev/test/prod) |
-| description | TEXT | 描述 |
-| create_time | DATETIME | 创建时间 |
-
-### db_instances 表
-
-数据库实例表。
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | INT | 主键 |
-| name | VARCHAR(100) | 实例名称 |
-| db_type | VARCHAR(50) | 数据库类型 |
-| version | VARCHAR(50) | 版本 |
-| ip | VARCHAR(50) | IP地址 |
-| port | INT | 端口 |
-| charset | VARCHAR(20) | 字符集 |
-| status | TINYINT | 状态 (0/1) |
-| environment | VARCHAR(50) | 环境 (dev/test/prod) |
-| description | TEXT | 描述 |
-| create_time | DATETIME | 创建时间 |
-
-### user_permissions 表
-
-用户权限表。
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | INT | 主键 |
-| user_id | INT | 用户 ID (外键) |
-| category_id | INT | 分类 ID (外键，可为空) |
-| permission_type | VARCHAR(20) | 权限类型 |
-| create_time | DATETIME | 创建时间 |
 
 ## 默认数据
 
 ### 默认分类
 
-1. 学习
-2. 数据库
-3. 研发机器
-4. AI
-5. 移动通信
-6. 软件资源
-7. 运维
+| 排序 | 名称 | 访客可访问 |
+|------|------|-----------|
+| 1 | 学习 | ✅ |
+| 2 | 数据库 | ❌ |
+| 3 | 研发机器 | ❌ |
+| 4 | AI | ✅ |
+| 5 | 测试 | ✅ |
+| 6 | 软件资源 | ✅ |
+| 7 | 运维 | ❌ |
+| 8 | 工具 | ✅ |
 
 ### 默认资源
 
-**学习分类**：
-- GitHub
-- Stack Overflow
-- MDN Web Docs
-- 菜鸟教程
-- LeetCode
-- Codecademy
+**学习**：GitHub, Stack Overflow, MDN Web Docs, 菜鸟教程, LeetCode, Codecademy
 
-**AI 分类**：
-- OpenAI
-- Hugging Face
-- Stable Diffusion
-- MidJourney
-- Claude
-- Perplexity
+**AI**：OpenAI, Hugging Face, Stable Diffusion, MidJourney, Claude, Perplexity
 
-**软件资源**：
-- VS Code
-- Docker
-- Notion
-- Figma
-- Chrome
+**软件资源**：VS Code, Docker, Notion, Figma, Chrome
 
-## 部署指南
-
-### Docker 部署（推荐）
-
-```bash
-# 构建镜像
-docker build -t resource-nav .
-
-# 运行容器
-docker run -p 8000:8000 --env-file .env resource-nav
-```
-
-### 生产部署
-
-1. 修改 `.env` 配置，设置强密码和密钥
-2. 使用 Gunicorn + Uvicorn 部署
-3. 配置 Nginx 反向代理
-4. 配置 HTTPS
-5. 配置日志轮转
-
-详细部署请查看 [DEPLOYMENT.md](./DEPLOYMENT.md)
+**工具**：wttr.in, Public APIs, Papers With Code, Hugging Face Datasets, DevDocs
 
 ## 开发指南
 
@@ -366,17 +276,21 @@ docker run -p 8000:8000 --env-file .env resource-nav
 
 ```bash
 cd backend
-pip install -r requirements.txt
-python main.py
+uv sync
+python main.py   # uvicorn --reload :8000
 ```
 
 ### 前端开发
 
-直接编辑 `frontend/` 下的文件，浏览器会自动刷新。
+直接编辑 `frontend/` 下的文件，浏览器会自动刷新（后端热重载也刷新）。
 
 ### 数据库迁移
 
-修改模型后需要手动更新数据库或使用迁移工具。
+当 models.py 变更时，需要手动编写 SQL 迁移脚本并放入 `sql/` 目录，然后用 `mycli` 执行：
+
+```bash
+mycli -h 127.0.0.1 -uroot -proot123456 resource_nav -e "SOURCE sql/your_migration.sql"
+```
 
 ## 常见问题
 
@@ -394,19 +308,3 @@ python main.py
 ### API 文档无法访问
 
 确保后端服务正在运行，访问 http://localhost:8000/docs
-
-## 贡献指南
-
-1. Fork 项目
-2. 创建功能分支
-3. 提交更改
-4. 推送到分支
-5. 创建 Pull Request
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-如有问题或建议，欢迎提交 Issue。
