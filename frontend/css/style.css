@@ -637,6 +637,7 @@ textarea.form-input {
 .status-dot.online  { background: var(--success); }
 .status-dot.offline { background: var(--fg-3); }
 .status-dot.pending { background: var(--warn); }
+.status-dot.error   { background: var(--danger); }
 
 /* ---- Toggle Switch ---- */
 .toggle {

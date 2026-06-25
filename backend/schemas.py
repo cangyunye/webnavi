@@ -80,7 +80,7 @@ class DevMachineBase(BaseModel):
     memory: Optional[str] = None
     disk: Optional[str] = None
     os: Optional[str] = None
-    status: int = 1
+    status: str = "online"
     environment: str = "dev"
     description: Optional[str] = None
 
@@ -109,7 +109,7 @@ class DbInstanceBase(BaseModel):
     ip: str
     port: int = 3306
     charset: str = "utf8mb4"
-    status: int = 1
+    status: str = "online"
     environment: str = "dev"
     description: Optional[str] = None
 

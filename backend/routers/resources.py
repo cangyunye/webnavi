@@ -177,7 +177,7 @@ def get_owner_resources(
 @router.get("/dev-machines", response_model=List[DevMachineResponse])
 def get_dev_machines(
     environment: Optional[str] = None,
-    device_status: Optional[int] = Query(None, alias="status"),
+    device_status: Optional[str] = Query(None, alias="status"),
     owner_id: Optional[int] = None,
     organization_id: Optional[int] = None,
     db: Session = Depends(get_db),
@@ -220,7 +220,7 @@ def get_dev_machine(
 def get_db_instances(
     environment: Optional[str] = None,
     db_type: Optional[str] = None,
-    instance_status: Optional[int] = Query(None, alias="status"),
+    instance_status: Optional[str] = Query(None, alias="status"),
     owner_id: Optional[int] = None,
     organization_id: Optional[int] = None,
     db: Session = Depends(get_db),

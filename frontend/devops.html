@@ -80,6 +80,14 @@
       min-width: 180px;
     }
     .search-input:focus { outline: none; border-color: var(--accent); }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 2px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 510;
+    }
+    .status-badge.online  { background: rgba(34,197,94,0.12); color: #4ade80; }
+    .status-badge.offline { background: rgba(107,114,128,0.15); color: var(--fg-3); }
+    .status-badge.pending { background: rgba(234,179,8,0.12); color: #facc15; }
+    .status-badge.error   { background: rgba(239,68,68,0.12); color: #f87171; }
   </style>
 </head>
 <body>
@@ -103,8 +111,7 @@
             <span id="pageBreadcrumb">运维</span>
           </nav>
         </div>
-        <div class="topbar-right" id="topbarRight">
-        </div>
+        <div class="topbar-right" id="topbarRight"></div>
       </header>
 
       <div class="content-area">
@@ -121,21 +128,26 @@
           <div class="stat-row">
             <div class="stat-card"><span class="num" id="mTotal">0</span><div class="label">总机器</div></div>
             <div class="stat-card"><span class="num" style="color:var(--success)" id="mOnline">0</span><div class="label">在线</div></div>
+            <div class="stat-card"><span class="num" style="color:var(--warn)" id="mPending">0</span><div class="label">待处理</div></div>
+            <div class="stat-card"><span class="num" style="color:var(--danger)" id="mError">0</span><div class="label">故障</div></div>
             <div class="stat-card"><span class="num" style="color:var(--fg-3)" id="mOffline">0</span><div class="label">离线</div></div>
           </div>
           <div class="filter-bar">
-            <select class="filter-select" id="mEnvFilter" onchange="filterMachines()">
-              <option value="">全部环境</option>
-              <option value="dev">开发 (dev)</option>
-              <option value="test">测试 (test)</option>
-              <option value="prod">生产 (prod)</option>
-            </select>
+            <select class="filter-select" id="mEnvFilter" onchange="filterMachines()"><option value="">全部环境</option></select>
             <select class="filter-select" id="mStatusFilter" onchange="filterMachines()">
               <option value="">全部状态</option>
-              <option value="1">在线</option>
-              <option value="0">离线</option>
+              <option value="online">在线</option>
+              <option value="offline">离线</option>
+              <option value="pending">待处理</option>
+              <option value="error">错误</option>
             </select>
             <input class="search-input" id="mSearch" placeholder="搜索名称/IP…" oninput="filterMachines()" />
+            <select class="filter-select" id="mPageSize" onchange="setMachinePageSize(+this.value)">
+              <option value="15">15/页</option>
+              <option value="30">30/页</option>
+              <option value="50">50/页</option>
+              <option value="100">100/页</option>
+            </select>
             <button class="btn btn-primary btn-sm" onclick="openSlidePanel('machine', null)" id="addMachineBtn" style="display:none">+ 添加研发机器</button>
           </div>
           <div class="table-wrap">
@@ -144,25 +156,34 @@
               <tbody id="machineTableBody"></tbody>
             </table>
           </div>
+          <div class="pagination" id="machinePagination"></div>
         </div>
 
         <div id="view-databases" style="display:none">
           <div class="stat-row">
             <div class="stat-card"><span class="num" id="dbTotal">0</span><div class="label">总实例</div></div>
             <div class="stat-card"><span class="num" style="color:var(--success)" id="dbOnline">0</span><div class="label">在线</div></div>
+            <div class="stat-card"><span class="num" style="color:var(--warn)" id="dbPending">0</span><div class="label">待处理</div></div>
+            <div class="stat-card"><span class="num" style="color:var(--danger)" id="dbError">0</span><div class="label">故障</div></div>
             <div class="stat-card"><span class="num" style="color:var(--fg-3)" id="dbOffline">0</span><div class="label">离线</div></div>
           </div>
           <div class="filter-bar">
-            <select class="filter-select" id="dbTypeFilter" oninput="filterDatabases()">
-              <option value="">全部类型</option>
-              <option>MySQL</option><option>PostgreSQL</option><option>Redis</option>
-              <option>MongoDB</option><option>Elasticsearch</option><option>ClickHouse</option>
-            </select>
-            <select class="filter-select" id="dbEnvFilter" onchange="filterDatabases()">
-              <option value="">全部环境</option>
-              <option value="dev">开发</option><option value="test">测试</option><option value="prod">生产</option>
+            <select class="filter-select" id="dbTypeFilter" onchange="filterDatabases()"><option value="">全部类型</option></select>
+            <select class="filter-select" id="dbEnvFilter" onchange="filterDatabases()"><option value="">全部环境</option></select>
+            <select class="filter-select" id="dbStatusFilter" onchange="filterDatabases()">
+              <option value="">全部状态</option>
+              <option value="online">在线</option>
+              <option value="offline">离线</option>
+              <option value="pending">待处理</option>
+              <option value="error">错误</option>
             </select>
             <input class="search-input" id="dbSearch" placeholder="搜索名称/地址…" oninput="filterDatabases()" />
+            <select class="filter-select" id="dbPageSize" onchange="setDbPageSize(+this.value)">
+              <option value="15">15/页</option>
+              <option value="30">30/页</option>
+              <option value="50">50/页</option>
+              <option value="100">100/页</option>
+            </select>
             <button class="btn btn-primary btn-sm" onclick="openSlidePanel('database', null)" id="addDbBtn" style="display:none">+ 添加数据库</button>
           </div>
           <div class="table-wrap">
@@ -171,6 +192,7 @@
               <tbody id="dbTableBody"></tbody>
             </table>
           </div>
+          <div class="pagination" id="dbPagination"></div>
         </div>
       </div>
     </main>
@@ -192,6 +214,7 @@
   <script src="js/api.js"></script>
   <script>
     initTheme();
+    const STATUS_LABELS = { online:'在线', offline:'离线', pending:'待处理', error:'错误' };
     let machines = [];
     let databases = [];
     let currentTab = 'machines';
@@ -199,6 +222,16 @@
     let editTarget = null;
     let orgs = [];
     let owners = [];
+    let envOpts = [];
+    let dbTypeOpts = [];
+    let machinePage = 1, machinePageSize = 15;
+    let dbPage = 1, dbPageSize = 15;
+    let filteredMachines = [], filteredDatabases = [];
+
+    function populateSelect(id, opts) {
+      const sel = document.getElementById(id);
+      sel.innerHTML = '<option value="">全部</option>' + opts.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+    }
 
     async function init() {
       currentUser = getUser();
@@ -212,6 +245,12 @@
 
       try { orgs = await apiRequest('/organizations'); } catch { orgs = []; }
       try { owners = await apiRequest('/owners'); } catch { owners = []; }
+      try { envOpts = await apiRequest('/enum-items/environment/options'); } catch {}
+      try { dbTypeOpts = await apiRequest('/enum-items/db_type/options'); } catch {}
+
+      populateSelect('mEnvFilter', envOpts);
+      populateSelect('dbEnvFilter', envOpts);
+      populateSelect('dbTypeFilter', dbTypeOpts);
 
       document.getElementById('addMachineBtn').style.display = '';
       document.getElementById('addDbBtn').style.display = '';
@@ -266,28 +305,40 @@
       try { machines = await apiRequest('/dev-machines'); } catch { machines = []; }
       filterMachines();
     }
-
     async function loadDatabases() {
       try { databases = await apiRequest('/db-instances'); } catch { databases = []; }
       filterDatabases();
     }
 
+    /* ---- Machines ---- */
     function filterMachines() {
       const env = document.getElementById('mEnvFilter').value;
       const status = document.getElementById('mStatusFilter').value;
       const q = document.getElementById('mSearch').value.toLowerCase();
-      let filtered = machines.filter(m => {
+      filteredMachines = machines.filter(m => {
         if (env && m.environment !== env) return false;
-        if (status !== '' && m.status !== parseInt(status)) return false;
+        if (status && m.status !== status) return false;
         if (q && !m.name.toLowerCase().includes(q) && !m.ip.includes(q)) return false;
         return true;
       });
-      renderMachineTable(filtered);
-      const online = filtered.filter(m => m.status === 1).length;
-      document.getElementById('mTotal').textContent = filtered.length;
-      document.getElementById('mOnline').textContent = online;
-      document.getElementById('mOffline').textContent = filtered.length - online;
-      document.getElementById('machineCount').textContent = filtered.length;
+      machinePage = 1;
+      renderMachinePage();
+    }
+
+    function renderMachinePage() {
+      const total = filteredMachines.length;
+      const start = (machinePage - 1) * machinePageSize;
+      const paged = filteredMachines.slice(start, start + machinePageSize);
+      renderMachineTable(paged);
+      const counts = { online:0, offline:0, pending:0, error:0 };
+      filteredMachines.forEach(m => { if (counts[m.status] !== undefined) counts[m.status]++; });
+      document.getElementById('mTotal').textContent = total;
+      document.getElementById('mOnline').textContent = counts.online;
+      document.getElementById('mOffline').textContent = counts.offline;
+      document.getElementById('mPending').textContent = counts.pending;
+      document.getElementById('mError').textContent = counts.error;
+      document.getElementById('machineCount').textContent = total;
+      renderPagination('machine');
     }
 
     function renderMachineTable(data) {
@@ -296,15 +347,16 @@
         tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--fg-3)">没有匹配的机器</td></tr>';
         return;
       }
-      const canEdit = currentUser && (currentUser.role === 'admin' || currentUser.can_edit);
-      const canDelete = currentUser && (currentUser.role === 'admin' || currentUser.can_delete);
+      const canEdit = currentUser && (currentUser.role === 'admin' || currentUser.role === 'ops_expert' || currentUser.can_edit);
+      const canDelete = currentUser && (currentUser.role === 'admin' || currentUser.role === 'ops_expert' || currentUser.can_delete);
       tbody.innerHTML = data.map(m => {
-        const envClass = m.environment==='prod'?'env-prod':m.environment==='test'?'env-test':'env-dev';
+        const envClass = m.environment==='prod'?'env-prod':m.environment==='test'?'env-test':m.environment==='staging'?'env-staging':'env-dev';
+        const st = m.status || 'offline';
         return `<tr>
           <td><strong>${m.name}</strong></td>
           <td class="mono">${m.ip}:${m.port}</td>
           <td><span class="env-badge ${envClass}">${m.environment}</span></td>
-          <td><span class="status-dot ${m.status===1?'online':'offline'}"></span>${m.status === 1 ? '在线' : '离线'}</td>
+          <td><span class="status-badge ${st}"><span class="status-dot" style="margin:0"></span> ${STATUS_LABELS[st] || st}</span></td>
           <td>${m.owner_name || '-'}</td>
           <td>${m.organization_name || '-'}</td>
           <td class="mono">${m.cpu || '-'}</td>
@@ -318,22 +370,37 @@
       }).join('');
     }
 
+    /* ---- Databases ---- */
     function filterDatabases() {
       const type = document.getElementById('dbTypeFilter').value;
       const env = document.getElementById('dbEnvFilter').value;
+      const status = document.getElementById('dbStatusFilter').value;
       const q = document.getElementById('dbSearch').value.toLowerCase();
-      let filtered = databases.filter(d => {
+      filteredDatabases = databases.filter(d => {
         if (type && d.db_type !== type) return false;
         if (env && d.environment !== env) return false;
+        if (status && d.status !== status) return false;
         if (q && !d.name.toLowerCase().includes(q) && !d.ip.includes(q) && !`${d.ip}:${d.port}`.includes(q)) return false;
         return true;
       });
-      renderDbTable(filtered);
-      const online = filtered.filter(d => d.status === 1).length;
-      document.getElementById('dbTotal').textContent = filtered.length;
-      document.getElementById('dbOnline').textContent = online;
-      document.getElementById('dbOffline').textContent = filtered.length - online;
-      document.getElementById('dbCount').textContent = filtered.length;
+      dbPage = 1;
+      renderDbPage();
+    }
+
+    function renderDbPage() {
+      const total = filteredDatabases.length;
+      const start = (dbPage - 1) * dbPageSize;
+      const paged = filteredDatabases.slice(start, start + dbPageSize);
+      renderDbTable(paged);
+      const counts = { online:0, offline:0, pending:0, error:0 };
+      filteredDatabases.forEach(d => { if (counts[d.status] !== undefined) counts[d.status]++; });
+      document.getElementById('dbTotal').textContent = total;
+      document.getElementById('dbOnline').textContent = counts.online;
+      document.getElementById('dbOffline').textContent = counts.offline;
+      document.getElementById('dbPending').textContent = counts.pending;
+      document.getElementById('dbError').textContent = counts.error;
+      document.getElementById('dbCount').textContent = total;
+      renderPagination('db');
     }
 
     function renderDbTable(data) {
@@ -342,26 +409,65 @@
         tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--fg-3)">没有匹配的数据库</td></tr>';
         return;
       }
+      const canEdit = currentUser && (currentUser.role === 'admin' || currentUser.role === 'ops_expert' || currentUser.can_edit);
+      const canDelete = currentUser && (currentUser.role === 'admin' || currentUser.role === 'ops_expert' || currentUser.can_delete);
       tbody.innerHTML = data.map(d => {
-        const envClass = d.environment==='prod'?'env-prod':d.environment==='test'?'env-test':'env-dev';
+        const envClass = d.environment==='prod'?'env-prod':d.environment==='test'?'env-test':d.environment==='staging'?'env-staging':'env-dev';
+        const st = d.status || 'offline';
         return `<tr>
           <td><strong>${d.name}</strong></td>
           <td><span class="badge badge-purple">${d.db_type}</span></td>
           <td class="mono">${d.version || '-'}</td>
           <td class="mono">${d.ip}:${d.port}</td>
           <td><span class="env-badge ${envClass}">${d.environment}</span></td>
-          <td><span class="status-dot ${d.status===1?'online':'offline'}"></span>${d.status === 1 ? '在线' : '离线'}</td>
+          <td><span class="status-badge ${st}"><span class="status-dot" style="margin:0"></span> ${STATUS_LABELS[st] || st}</span></td>
           <td>${d.owner_name || '-'}</td>
           <td>${d.organization_name || '-'}</td>
           <td class="mono">${d.charset || '-'}</td>
           <td class="action-cell">
-            <button class="btn btn-ghost btn-sm" onclick="openSlidePanel('database', ${d.id})">✎</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteItem('database',${d.id},'${d.name}')">✕</button>
+            ${canEdit ? `<button class="btn btn-ghost btn-sm" onclick="openSlidePanel('database', ${d.id})">✎</button>` : ''}
+            ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="deleteItem('database',${d.id},'${d.name}')">✕</button>` : ''}
           </td>
         </tr>`;
       }).join('');
     }
 
+    /* ---- Pagination ---- */
+    function renderPagination(prefix) {
+      const page = prefix === 'machine' ? machinePage : dbPage;
+      const size = prefix === 'machine' ? machinePageSize : dbPageSize;
+      const total = prefix === 'machine' ? filteredMachines.length : filteredDatabases.length;
+      const totalPages = Math.ceil(total / size) || 1;
+      const el = document.getElementById(prefix + 'Pagination');
+      el.innerHTML = `
+        <button class="page-btn" onclick="${prefix==='machine'?'changeMachinePage(-1)':'changeDbPage(-1)'}" ${page<=1?'disabled':''} style="${page<=1?'opacity:0.3':'cursor:pointer'}"><</button>
+        <span class="page-info">${page} / ${totalPages}</span>
+        <button class="page-btn" onclick="${prefix==='machine'?'changeMachinePage(1)':'changeDbPage(1)'}" ${page>=totalPages?'disabled':''} style="${page>=totalPages?'opacity:0.3':'cursor:pointer'}">></button>
+      `;
+    }
+
+    function changeMachinePage(delta) {
+      const totalPages = Math.ceil(filteredMachines.length / machinePageSize) || 1;
+      machinePage = Math.max(1, Math.min(machinePage + delta, totalPages));
+      renderMachinePage();
+    }
+    function setMachinePageSize(size) {
+      machinePageSize = size;
+      machinePage = 1;
+      renderMachinePage();
+    }
+    function changeDbPage(delta) {
+      const totalPages = Math.ceil(filteredDatabases.length / dbPageSize) || 1;
+      dbPage = Math.max(1, Math.min(dbPage + delta, totalPages));
+      renderDbPage();
+    }
+    function setDbPageSize(size) {
+      dbPageSize = size;
+      dbPage = 1;
+      renderDbPage();
+    }
+
+    /* ---- Slide Panel ---- */
     function openSlidePanel(type, id) {
       editTarget = id ? { type, id } : null;
       const isEdit = editTarget !== null;
@@ -370,6 +476,7 @@
 
       const orgOpts = orgs.map(o => `<option value="${o.id}" ${isEdit && data.organization_id === o.id ? 'selected' : ''}>${o.name}</option>`).join('');
       const ownerOpts = owners.map(o => `<option value="${o.id}" ${isEdit && data.owner_id === o.id ? 'selected' : ''}>${o.username}</option>`).join('');
+      const envOptsHtml = envOpts.map(o => `<option value="${o.value}" ${isEdit&&data.environment===o.value?'selected':''}>${o.label}</option>`).join('');
 
       if (type === 'machine') {
         document.getElementById('slideBody').innerHTML = `
@@ -377,16 +484,14 @@
           <div class="form-group"><label class="form-label">IP 地址</label><input class="form-input" id="sf-ip" value="${isEdit?data.ip:''}" /></div>
           <div class="form-group"><label class="form-label">SSH 端口</label><input class="form-input" id="sf-port" value="${isEdit?data.port:22}" /></div>
           <div class="form-group"><label class="form-label">环境</label>
-            <select class="form-input" id="sf-env">
-              <option value="dev" ${isEdit&&data.environment==='dev'?'selected':''}>开发 (dev)</option>
-              <option value="test" ${isEdit&&data.environment==='test'?'selected':''}>测试 (test)</option>
-              <option value="prod" ${isEdit&&data.environment==='prod'?'selected':''}>生产 (prod)</option>
-            </select>
+            <select class="form-input" id="sf-env">${envOptsHtml}</select>
           </div>
           <div class="form-group"><label class="form-label">状态</label>
             <select class="form-input" id="sf-status">
-              <option value="1" ${isEdit&&data.status===1?'selected':''}>在线</option>
-              <option value="0" ${isEdit&&data.status===0?'selected':''}>离线</option>
+              <option value="online" ${isEdit&&data.status==='online'?'selected':''}>在线</option>
+              <option value="offline" ${isEdit&&data.status==='offline'?'selected':''}>离线</option>
+              <option value="pending" ${isEdit&&data.status==='pending'?'selected':''}>待处理</option>
+              <option value="error" ${isEdit&&data.status==='error'?'selected':''}>错误</option>
             </select>
           </div>
           <div class="form-group"><label class="form-label">负责人</label>
@@ -400,28 +505,24 @@
           <div class="form-group"><label class="form-label">操作系统</label><input class="form-input" id="sf-os" value="${isEdit?data.os||'':''}" /></div>
         `;
       } else {
+        const dbTypeOptsHtml = dbTypeOpts.map(o => `<option value="${o.value}" ${isEdit&&data.db_type===o.value?'selected':''}>${o.label}</option>`).join('');
         document.getElementById('slideBody').innerHTML = `
           <div class="form-group"><label class="form-label">名称</label><input class="form-input" id="sf-name" value="${isEdit?data.name:''}" /></div>
           <div class="form-group"><label class="form-label">类型</label>
-            <select class="form-input" id="sf-type">
-              <option>MySQL</option><option>PostgreSQL</option><option>Redis</option>
-              <option>MongoDB</option><option>Elasticsearch</option><option>ClickHouse</option>
-            </select>
+            <select class="form-input" id="sf-type">${dbTypeOptsHtml}</select>
           </div>
           <div class="form-group"><label class="form-label">版本</label><input class="form-input" id="sf-ver" value="${isEdit?data.version||'':''}" /></div>
           <div class="form-group"><label class="form-label">IP 地址</label><input class="form-input" id="sf-ip" value="${isEdit?data.ip:''}" /></div>
           <div class="form-group"><label class="form-label">端口</label><input class="form-input" id="sf-port" value="${isEdit?data.port:3306}" /></div>
           <div class="form-group"><label class="form-label">环境</label>
-            <select class="form-input" id="sf-env">
-              <option value="dev" ${isEdit&&data.environment==='dev'?'selected':''}>开发</option>
-              <option value="test" ${isEdit&&data.environment==='test'?'selected':''}>测试</option>
-              <option value="prod" ${isEdit&&data.environment==='prod'?'selected':''}>生产</option>
-            </select>
+            <select class="form-input" id="sf-env">${envOptsHtml}</select>
           </div>
           <div class="form-group"><label class="form-label">状态</label>
             <select class="form-input" id="sf-status">
-              <option value="1" ${isEdit&&data.status===1?'selected':''}>在线</option>
-              <option value="0" ${isEdit&&data.status===0?'selected':''}>离线</option>
+              <option value="online" ${isEdit&&data.status==='online'?'selected':''}>在线</option>
+              <option value="offline" ${isEdit&&data.status==='offline'?'selected':''}>离线</option>
+              <option value="pending" ${isEdit&&data.status==='pending'?'selected':''}>待处理</option>
+              <option value="error" ${isEdit&&data.status==='error'?'selected':''}>错误</option>
             </select>
           </div>
           <div class="form-group"><label class="form-label">负责人</label>
@@ -451,14 +552,14 @@
 
       const body = type === 'machine' ? {
         name: g('sf-name'), ip: g('sf-ip'), port: parseInt(g('sf-port')),
-        environment: g('sf-env'), status: parseInt(g('sf-status')),
+        environment: g('sf-env'), status: g('sf-status'),
         owner_id: g('sf-owner') ? parseInt(g('sf-owner')) : null,
         organization_id: g('sf-org') ? parseInt(g('sf-org')) : null,
         cpu: g('sf-cpu') || null, memory: g('sf-ram') || null, os: g('sf-os') || null
       } : {
         name: g('sf-name'), db_type: g('sf-type'), version: g('sf-ver') || null,
         ip: g('sf-ip'), port: parseInt(g('sf-port')),
-        environment: g('sf-env'), status: parseInt(g('sf-status')),
+        environment: g('sf-env'), status: g('sf-status'),
         owner_id: g('sf-owner') ? parseInt(g('sf-owner')) : null,
         organization_id: g('sf-org') ? parseInt(g('sf-org')) : null,
         charset: g('sf-charset') || 'utf8mb4'

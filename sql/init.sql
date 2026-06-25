@@ -80,7 +80,7 @@ CREATE TABLE dev_machines (
     memory VARCHAR(50),
     disk VARCHAR(100),
     os VARCHAR(100),
-    status TINYINT DEFAULT 1,
+    status VARCHAR(20) DEFAULT 'online',
     environment VARCHAR(50) DEFAULT 'dev',
     description TEXT,
     owner_id INT,
@@ -91,18 +91,18 @@ CREATE TABLE dev_machines (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO dev_machines (name, ip, port, hostname, cpu, memory, disk, os, status, environment, description, owner_id, organization_id) VALUES
-('开发服务器-01', '192.168.1.101', 22, 'dev-server-01', '8核 Intel Xeon', '16GB', '500GB SSD', 'Ubuntu 22.04 LTS', 1, 'dev', '开发测试环境主服务器', 1, 1),
-('开发服务器-02', '192.168.1.102', 22, 'dev-server-02', '16核 Intel Xeon', '32GB', '1TB SSD', 'CentOS 7.9', 1, 'dev', '开发测试环境副服务器', 3, 3),
-('测试服务器-01', '192.168.1.201', 22, 'test-server-01', '8核 AMD Ryzen 7', '16GB', '500GB SSD', 'Ubuntu 22.04 LTS', 1, 'test', '功能测试服务器', 2, 2),
-('测试服务器-02', '192.168.1.202', 22, 'test-server-02', '8核 Intel Xeon', '16GB', '500GB SSD', 'Debian 11', 1, 'test', '性能测试服务器', 2, 2),
-('预生产服务器-01', '192.168.1.301', 22, 'pre-prod-01', '32核 Intel Xeon', '64GB', '2TB SSD', 'Ubuntu 22.04 LTS', 1, 'prod', '预生产环境', 7, 6),
-('生产服务器-01', '192.168.1.101', 22, 'prod-server-01', '64核 Intel Xeon', '128GB', '4TB SSD', 'CentOS 8', 1, 'prod', '生产环境主服务器', 7, 6),
-('生产服务器-02', '192.168.1.102', 22, 'prod-server-02', '64核 Intel Xeon', '128GB', '4TB SSD', 'CentOS 8', 1, 'prod', '生产环境副服务器', 7, 6),
-('构建服务器', '192.168.1.50', 22, 'build-server', '32核 Intel Xeon', '64GB', '2TB HDD', 'Ubuntu 22.04 LTS', 1, 'dev', 'CI/CD构建服务器', 1, 1),
-('GPU服务器', '192.168.1.150', 22, 'gpu-server-01', '32核 Intel Xeon + 4x RTX 3090', '128GB', '2TB NVMe', 'Ubuntu 22.04 LTS', 1, 'dev', 'GPU深度学习服务器', 4, 4),
-('日志服务器', '192.168.1.60', 22, 'log-server', '16核 Intel Xeon', '32GB', '4TB HDD', 'Ubuntu 22.04 LTS', 1, 'dev', '日志收集服务器', 5, 5),
-('缓存服务器', '192.168.1.70', 22, 'cache-server', '8核 Intel Xeon', '16GB', '256GB SSD', 'Ubuntu 22.04 LTS', 1, 'dev', 'Redis缓存服务器', 6, 6),
-('负载均衡器', '192.168.1.80', 22, 'lb-server', '8核 Intel Xeon', '8GB', '128GB SSD', 'Ubuntu 22.04 LTS', 1, 'prod', 'Nginx负载均衡服务器', 6, 6);
+('开发服务器-01', '192.168.1.101', 22, 'dev-server-01', '8核 Intel Xeon', '16GB', '500GB SSD', 'Ubuntu 22.04 LTS', 'online', 'dev', '开发测试环境主服务器', 1, 1),
+('开发服务器-02', '192.168.1.102', 22, 'dev-server-02', '16核 Intel Xeon', '32GB', '1TB SSD', 'CentOS 7.9', 'online', 'dev', '开发测试环境副服务器', 3, 3),
+('测试服务器-01', '192.168.1.201', 22, 'test-server-01', '8核 AMD Ryzen 7', '16GB', '500GB SSD', 'Ubuntu 22.04 LTS', 'online', 'test', '功能测试服务器', 2, 2),
+('测试服务器-02', '192.168.1.202', 22, 'test-server-02', '8核 Intel Xeon', '16GB', '500GB SSD', 'Debian 11', 'online', 'test', '性能测试服务器', 2, 2),
+('预生产服务器-01', '192.168.1.301', 22, 'pre-prod-01', '32核 Intel Xeon', '64GB', '2TB SSD', 'Ubuntu 22.04 LTS', 'online', 'prod', '预生产环境', 7, 6),
+('生产服务器-01', '192.168.1.101', 22, 'prod-server-01', '64核 Intel Xeon', '128GB', '4TB SSD', 'CentOS 8', 'online', 'prod', '生产环境主服务器', 7, 6),
+('生产服务器-02', '192.168.1.102', 22, 'prod-server-02', '64核 Intel Xeon', '128GB', '4TB SSD', 'CentOS 8', 'online', 'prod', '生产环境副服务器', 7, 6),
+('构建服务器', '192.168.1.50', 22, 'build-server', '32核 Intel Xeon', '64GB', '2TB HDD', 'Ubuntu 22.04 LTS', 'online', 'dev', 'CI/CD构建服务器', 1, 1),
+('GPU服务器', '192.168.1.150', 22, 'gpu-server-01', '32核 Intel Xeon + 4x RTX 3090', '128GB', '2TB NVMe', 'Ubuntu 22.04 LTS', 'online', 'dev', 'GPU深度学习服务器', 4, 4),
+('日志服务器', '192.168.1.60', 22, 'log-server', '16核 Intel Xeon', '32GB', '4TB HDD', 'Ubuntu 22.04 LTS', 'online', 'dev', '日志收集服务器', 5, 5),
+('缓存服务器', '192.168.1.70', 22, 'cache-server', '8核 Intel Xeon', '16GB', '256GB SSD', 'Ubuntu 22.04 LTS', 'online', 'dev', 'Redis缓存服务器', 6, 6),
+('负载均衡器', '192.168.1.80', 22, 'lb-server', '8核 Intel Xeon', '8GB', '128GB SSD', 'Ubuntu 22.04 LTS', 'online', 'prod', 'Nginx负载均衡服务器', 6, 6);
 
 CREATE TABLE db_instances (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -112,7 +112,7 @@ CREATE TABLE db_instances (
     ip VARCHAR(50) NOT NULL,
     port INT DEFAULT 3306,
     charset VARCHAR(20) DEFAULT 'utf8mb4',
-    status TINYINT DEFAULT 1,
+    status VARCHAR(20) DEFAULT 'online',
     environment VARCHAR(50) DEFAULT 'dev',
     description TEXT,
     owner_id INT,
@@ -123,17 +123,17 @@ CREATE TABLE db_instances (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO db_instances (name, db_type, version, ip, port, charset, status, environment, description, owner_id, organization_id) VALUES
-('MySQL-主库-dev', 'MySQL', '8.0.35', '192.168.2.101', 3306, 'utf8mb4', 1, 'dev', '开发环境MySQL主库', 1, 1),
-('MySQL-从库-dev', 'MySQL', '8.0.35', '192.168.2.102', 3306, 'utf8mb4', 1, 'dev', '开发环境MySQL从库', 1, 1),
-('MySQL-主库-test', 'MySQL', '8.0.35', '192.168.2.201', 3306, 'utf8mb4', 1, 'test', '测试环境MySQL主库', 2, 2),
-('MySQL-主库-prod', 'MySQL', '8.0.35', '192.168.2.301', 3306, 'utf8mb4', 1, 'prod', '生产环境MySQL主库', 7, 6),
-('PostgreSQL-dev', 'PostgreSQL', '16.1', '192.168.2.110', 5432, 'UTF8', 1, 'dev', '开发环境PostgreSQL', 3, 3),
-('PostgreSQL-prod', 'PostgreSQL', '16.1', '192.168.2.310', 5432, 'UTF8', 1, 'prod', '生产环境PostgreSQL', 7, 6),
-('Redis-dev', 'Redis', '7.2.3', '192.168.2.120', 6379, 'UTF8', 1, 'dev', '开发环境Redis缓存', 6, 6),
-('Redis-prod', 'Redis', '7.2.3', '192.168.2.320', 6379, 'UTF8', 1, 'prod', '生产环境Redis缓存', 6, 6),
-('MongoDB-dev', 'MongoDB', '7.0.5', '192.168.2.130', 27017, 'UTF8', 1, 'dev', '开发环境MongoDB', 5, 5),
-('Elasticsearch-dev', 'Elasticsearch', '8.11.3', '192.168.2.140', 9200, 'UTF8', 1, 'dev', '开发环境搜索引擎', 5, 5),
-('ClickHouse-dev', 'ClickHouse', '23.11.2', '192.168.2.150', 9000, 'UTF8', 1, 'dev', '开发环境OLAP数据库', 5, 5);
+('MySQL-主库-dev', 'MySQL', '8.0.35', '192.168.2.101', 3306, 'utf8mb4', 'online', 'dev', '开发环境MySQL主库', 1, 1),
+('MySQL-从库-dev', 'MySQL', '8.0.35', '192.168.2.102', 3306, 'utf8mb4', 'online', 'dev', '开发环境MySQL从库', 1, 1),
+('MySQL-主库-test', 'MySQL', '8.0.35', '192.168.2.201', 3306, 'utf8mb4', 'online', 'test', '测试环境MySQL主库', 2, 2),
+('MySQL-主库-prod', 'MySQL', '8.0.35', '192.168.2.301', 3306, 'utf8mb4', 'online', 'prod', '生产环境MySQL主库', 7, 6),
+('PostgreSQL-dev', 'PostgreSQL', '16.1', '192.168.2.110', 5432, 'UTF8', 'online', 'dev', '开发环境PostgreSQL', 3, 3),
+('PostgreSQL-prod', 'PostgreSQL', '16.1', '192.168.2.310', 5432, 'UTF8', 'online', 'prod', '生产环境PostgreSQL', 7, 6),
+('Redis-dev', 'Redis', '7.2.3', '192.168.2.120', 6379, 'UTF8', 'online', 'dev', '开发环境Redis缓存', 6, 6),
+('Redis-prod', 'Redis', '7.2.3', '192.168.2.320', 6379, 'UTF8', 'online', 'prod', '生产环境Redis缓存', 6, 6),
+('MongoDB-dev', 'MongoDB', '7.0.5', '192.168.2.130', 27017, 'UTF8', 'online', 'dev', '开发环境MongoDB', 5, 5),
+('Elasticsearch-dev', 'Elasticsearch', '8.11.3', '192.168.2.140', 9200, 'UTF8', 'online', 'dev', '开发环境搜索引擎', 5, 5),
+('ClickHouse-dev', 'ClickHouse', '23.11.2', '192.168.2.150', 9000, 'UTF8', 'online', 'dev', '开发环境OLAP数据库', 5, 5);
 
 CREATE TABLE resources (
     id INT AUTO_INCREMENT PRIMARY KEY,

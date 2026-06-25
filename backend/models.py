@@ -25,7 +25,7 @@ class Resource(Base):
     name = Column(String(100), nullable=False)
     url = Column(String(500), nullable=False)
     description = Column(Text)
-    status = Column(SmallInteger, default=1)
+    status = Column(SmallInteger, default=1)  # 0/1, not changed
     create_time = Column(DateTime, server_default=func.now())
     update_time = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -70,7 +70,7 @@ class DevMachine(Base):
     memory = Column(String(50))
     disk = Column(String(100))
     os = Column(String(100))
-    status = Column(SmallInteger, default=1)
+    status = Column(String(20), default="online")
     environment = Column(String(50), default="dev")
     description = Column(Text)
     owner_id = Column(Integer, ForeignKey("owners.id"))
@@ -91,7 +91,7 @@ class DbInstance(Base):
     ip = Column(String(50), nullable=False)
     port = Column(Integer, default=3306)
     charset = Column(String(20), default="utf8mb4")
-    status = Column(SmallInteger, default=1)
+    status = Column(String(20), default="online")
     environment = Column(String(50), default="dev")
     description = Column(Text)
     owner_id = Column(Integer, ForeignKey("owners.id"))
