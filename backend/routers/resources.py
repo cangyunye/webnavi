@@ -25,7 +25,7 @@ def check_category_permission(current_user: User, category_name: str, db: Sessio
         return True
     
     if current_user.role == "guest":
-        guest_categories = ["学习", "AI", "软件资源", "测试"]
+        guest_categories = ["学习", "AI", "软件资源", "测试", "工具"]
         return category_name in guest_categories
     
     if current_user.role == "registered":
@@ -286,7 +286,7 @@ def get_resources(
     current_user: User = Depends(get_current_user)
 ):
     if current_user.role == "guest":
-        guest_categories = ["学习", "AI", "软件资源", "测试"]
+        guest_categories = ["学习", "AI", "软件资源", "测试", "工具"]
         from models import Category
         category = db.query(Category).filter(Category.id == category_id).first()
         if not category or category.name not in guest_categories:

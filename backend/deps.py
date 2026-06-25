@@ -196,7 +196,7 @@ async def get_current_user(
 
 
 def check_permission(user: User, category_id: Optional[int] = None) -> bool:
-    guest_categories = ["学习", "AI", "软件资源", "测试"]
+    guest_categories = ["学习", "AI", "软件资源", "测试", "工具"]
 
     if user.role == "admin":
         return True

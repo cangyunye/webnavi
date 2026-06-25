@@ -30,7 +30,8 @@ INSERT INTO categories (name, icon, sort_order) VALUES
 ('AI', 'icon-ai', 4),
 ('测试', 'icon-test', 5),
 ('软件资源', 'icon-software', 6),
-('运维', 'icon-ops', 7);
+('运维', 'icon-ops', 7),
+('工具', 'icon-tools', 8);
 
 CREATE TABLE organizations (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -163,7 +164,12 @@ INSERT INTO resources (category_id, name, url, description, status) VALUES
 (6, 'Docker', 'https://www.docker.com', '容器化应用平台', 1),
 (6, 'Notion', 'https://www.notion.so', '笔记与协作工具', 1),
 (6, 'Figma', 'https://www.figma.com', 'UI设计协作工具', 1),
-(6, 'Chrome', 'https://www.google.com/chrome', 'Google浏览器', 1);
+(6, 'Chrome', 'https://www.google.com/chrome', 'Google浏览器', 1),
+(8, 'wttr.in', 'https://wttr.in', '命令行风格的天气预报工具，支持 curl 直接调用', 1),
+(8, 'Public APIs', 'https://github.com/public-apis/public-apis', '开源 API 集合，收录各种免费 API 接口', 1),
+(8, 'Papers With Code', 'https://paperswithcode.com', '机器学习论文 + 数据集 + 代码实现汇总', 1),
+(8, 'Hugging Face Datasets', 'https://huggingface.co/datasets', '开源机器学习数据集仓库', 1),
+(8, 'DevDocs', 'https://devdocs.io', '开发者文档聚合查询工具', 1);
 
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -180,16 +186,6 @@ CREATE TABLE users (
 
 INSERT INTO users (username, email, password_hash, role, is_active, can_edit, can_delete) VALUES
 ('admin', 'admin@example.com', '$2b$12$QL0LG1zvAemsOOS9qoemnundznMTN/E7vs8Lqc2IwSpXaKFf7mikK', 'admin', 1, 1, 1);
-
-CREATE TABLE user_permissions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    category_id INT,
-    permission_type VARCHAR(20) DEFAULT 'view',
-    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (category_id) REFERENCES categories(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE credentials (
     id INT AUTO_INCREMENT PRIMARY KEY,

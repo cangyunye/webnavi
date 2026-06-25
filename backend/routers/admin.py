@@ -5,23 +5,24 @@ from typing import List, Optional
 import bcrypt
 
 from database import get_db
-from models import User, UserPermission, Category, Credential, DevMachine, DbInstance
+from models import User, Category, Credential, DevMachine, DbInstance
 from schemas import (
     UserResponse,
-    UserWithPermissions,
-    UserPermissionCreate,
-    UserPermissionResponse,
-    UserPermissionInfo,
     UserRoleUpdate,
     UserStatusUpdate,
-    UserCategoryPermissionsUpdate,
-    UserActionPermissionsUpdate,
     UserCreate,
     CredentialCreate,
     CredentialUpdate,
     CredentialResponse
 )
-from deps import get_current_user
+from deps import get_current_user, get_password_hash
+
+
+class AdminUserCreate(BaseModel):
+    username: str
+    email: Optional[str] = None
+    password: str
+    role: str = "registered"
 
 router = APIRouter(prefix="/api/admin", tags=["用户管理"])
 
@@ -47,40 +48,16 @@ def get_resource_name(db: Session, resource_type: str, resource_id: int) -> str:
     return ""
 
 
-def build_user_with_permissions(db: Session, user: User) -> UserWithPermissions:
-    permissions = []
-    for perm in user.permissions:
-        category = db.query(Category).filter(Category.id == perm.category_id).first()
-        if category:
-            permissions.append(UserPermissionInfo(
-                category_id=perm.category_id,
-                category_name=category.name,
-                permission_type=perm.permission_type
-            ))
-
-    return UserWithPermissions(
-        id=user.id,
-        username=user.username,
-        email=user.email,
-        role=user.role,
-        is_active=user.is_active,
-        can_edit=bool(user.can_edit),
-        can_delete=bool(user.can_delete),
-        permissions=permissions,
-        create_time=user.create_time
-    )
-
-
-@router.get("/users", response_model=List[UserWithPermissions])
+@router.get("/users", response_model=List[UserResponse])
 def get_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
     users = db.query(User).filter(User.id != 0).order_by(User.id.desc()).all()
-    return [build_user_with_permissions(db, u) for u in users]
+    return users
 
 
-@router.get("/users/{user_id}", response_model=UserWithPermissions)
+@router.get("/users/{user_id}", response_model=UserResponse)
 def get_user(
     user_id: int,
     db: Session = Depends(get_db),
@@ -89,7 +66,7 @@ def get_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="用户未找到")
-    return build_user_with_permissions(db, user)
+    return user
 
 
 @router.put("/users/{user_id}/role")
@@ -127,51 +104,6 @@ def update_user_status(
     return {"message": "状态更新成功"}
 
 
-@router.put("/users/{user_id}/categories")
-def update_user_categories(
-    user_id: int,
-    perm_data: UserCategoryPermissionsUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
-):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="用户未找到")
-
-    db.query(UserPermission).filter(UserPermission.user_id == user_id).delete()
-
-    for item in perm_data.category_permissions:
-        if item.enabled:
-            category = db.query(Category).filter(Category.id == item.category_id).first()
-            if category:
-                perm = UserPermission(
-                    user_id=user_id,
-                    category_id=item.category_id,
-                    permission_type="view"
-                )
-                db.add(perm)
-
-    db.commit()
-    return {"message": "分类权限更新成功"}
-
-
-@router.put("/users/{user_id}/actions")
-def update_user_actions(
-    user_id: int,
-    action_data: UserActionPermissionsUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
-):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="用户未找到")
-
-    user.can_edit = 1 if action_data.can_edit else 0
-    user.can_delete = 1 if action_data.can_delete else 0
-    db.commit()
-    return {"message": "操作权限更新成功"}
-
-
 class ResetPasswordRequest(BaseModel):
     password: str
 
@@ -195,60 +127,38 @@ def reset_user_password(
     return {"message": "密码重置成功"}
 
 
-@router.get("/users/{user_id}/permissions", response_model=List[UserPermissionResponse])
-def get_user_permissions(
-    user_id: int,
+@router.post("/users", response_model=UserResponse)
+def admin_create_user(
+    user_data: AdminUserCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
-    permissions = db.query(UserPermission).filter(UserPermission.user_id == user_id).all()
-    return permissions
+    if user_data.role not in ["registered", "admin"]:
+        raise HTTPException(status_code=400, detail="无效的角色")
 
+    if len(user_data.password) < 6:
+        raise HTTPException(status_code=400, detail="密码长度至少为6位")
 
-@router.post("/users/{user_id}/permissions", response_model=UserPermissionResponse)
-def add_user_permission(
-    user_id: int,
-    permission_data: UserPermissionCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
-):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="用户未找到")
+    existing = db.query(User).filter(User.username == user_data.username).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="用户名已存在")
 
-    if permission_data.category_id:
-        category = db.query(Category).filter(Category.id == permission_data.category_id).first()
-        if not category:
-            raise HTTPException(status_code=404, detail="分类未找到")
+    if user_data.email:
+        existing_email = db.query(User).filter(User.email == user_data.email).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="邮箱已被使用")
 
-    db_permission = UserPermission(
-        user_id=user_id,
-        category_id=permission_data.category_id,
-        permission_type=permission_data.permission_type
+    db_user = User(
+        username=user_data.username,
+        email=user_data.email,
+        password_hash=get_password_hash(user_data.password),
+        role=user_data.role,
+        is_active=1
     )
-    db.add(db_permission)
+    db.add(db_user)
     db.commit()
-    db.refresh(db_permission)
-    return db_permission
-
-
-@router.delete("/users/{user_id}/permissions/{permission_id}")
-def delete_user_permission(
-    user_id: int,
-    permission_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
-):
-    permission = db.query(UserPermission).filter(
-        UserPermission.id == permission_id,
-        UserPermission.user_id == user_id
-    ).first()
-    if not permission:
-        raise HTTPException(status_code=404, detail="权限未找到")
-
-    db.delete(permission)
-    db.commit()
-    return {"message": "权限删除成功"}
+    db.refresh(db_user)
+    return db_user
 
 
 @router.get("/credentials", response_model=List[CredentialResponse])

@@ -7,7 +7,8 @@ const CATEGORY_ICONS = {
     'AI': '🤖',
     '测试': '🧪',
     '软件资源': '💿',
-    '运维': '⚙️'
+    '运维': '⚙️',
+    '工具': '🛠️'
 };
 
 const SITE_ICONS = {
@@ -27,7 +28,12 @@ const SITE_ICONS = {
     'Docker': '🐳',
     'Notion': '📝',
     'Figma': '🎯',
-    'Chrome': '🌐'
+    'Chrome': '🌐',
+    'wttr.in': '🌤️',
+    'Public APIs': '🔌',
+    'Papers With Code': '📄',
+    'Hugging Face Datasets': '🤗',
+    'DevDocs': '📖'
 };
 
 let categories = [];
@@ -262,7 +268,7 @@ function handleRegister() {
 }
 
 function checkCategoryPermission(categoryName) {
-    const guest_categories = ['学习', 'AI', '软件资源', '测试'];
+    const guest_categories = ['学习', 'AI', '软件资源', '测试', '工具'];
     
     if (!currentUser || currentUser.role === 'guest') {
         return guest_categories.includes(categoryName);
@@ -403,7 +409,7 @@ async function loadCategoryData(categoryId, categoryName) {
             await loadDevMachines();
         } else if (categoryName === '数据库') {
             await loadDbInstances();
-        } else if (['学习', 'AI', '软件资源', '测试', '运维'].includes(categoryName)) {
+        } else if (['学习', 'AI', '软件资源', '测试', '运维', '工具'].includes(categoryName)) {
             await loadResources(parseInt(categoryId));
         } else {
             contentBody.innerHTML = `
@@ -859,7 +865,7 @@ function renderDbInstancesTable(instances) {
                             <th>负责人</th>
                             <th>归属组织</th>
                             <th>字符集</th>
-                            <th>操作</th>
+                            <th>备注</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -875,8 +881,7 @@ function renderDbInstancesTable(instances) {
                                 <td>${db.organization_name || '-'}</td>
                                 <td>${db.charset}</td>
                                 <td>
-                                    ${canEdit ? `<button class="btn btn-primary btn-sm" style="margin-right:4px" onclick="openEditDbPanel(${db.id})">修改</button>` : ''}
-                                    ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="deleteDbInstance(${db.id})">删除</button>` : ''}
+                                    <span class="truncated-text" title="${db.description || ''}">${truncateText(db.description, 20)}</span>
                                 </td>
                             </tr>
                         `).join('')}
@@ -1100,6 +1105,12 @@ function getEnvText(env) {
         'prod': '生产'
     };
     return envMap[env] || env;
+}
+
+function truncateText(text, maxLength) {
+    if (!text) return '-';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
 }
 
 function initCollapseSidebar() {
@@ -1407,7 +1418,9 @@ async function showUserManagementPage() {
     const userNavItem = Array.from(document.querySelectorAll('.nav-item')).find(i => i.dataset.name === 'users');
     if (userNavItem) userNavItem.classList.add('active');
     document.getElementById('page-title').textContent = '用户管理';
-    document.getElementById('header-actions').innerHTML = '';
+    document.getElementById('header-actions').innerHTML = `
+        <button class="btn btn-primary" onclick="showAddUserModal()">添加用户</button>
+    `;
 
     try {
         const [users, cats] = await Promise.all([
@@ -1427,6 +1440,9 @@ function renderUserManagementTable() {
 
     const tableHtml = `
         <div class="data-panel">
+            <div style="padding:12px 16px;font-size:14px;color:var(--text-secondary);border-bottom:1px solid var(--border-color);">
+                共 <strong>${allUsers.length}</strong> 个用户
+            </div>
             <div class="data-table-wrapper">
                 <table class="data-table" id="users-table">
                     <thead>
@@ -1475,7 +1491,7 @@ function renderUserManagementTable() {
                                     <button class="btn btn-sm btn-primary" onclick="showUserCategoryPermModal(${user.id})">设置分类</button>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-info" onclick="resetUserPassword(${user.id})">重置密码</button>
+                                    <button class="btn btn-sm btn-info" onclick="showResetPasswordModal(${user.id})">重置密码</button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -1589,24 +1605,128 @@ async function saveUserCategoryPerm(userId) {
     }
 }
 
-async function resetUserPassword(userId) {
-    const user = allUsers.find(u => u.id === userId);
-    if (!user) return;
+function showAddUserModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'add-user-modal';
+    modal.innerHTML = `
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 class="modal-header">添加用户</h2>
+            <div class="form-group">
+                <label class="form-label">用户名 *</label>
+                <input type="text" class="form-input" id="new-user-username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label class="form-label">邮箱</label>
+                <input type="email" class="form-input" id="new-user-email" placeholder="请输入邮箱（可选）">
+            </div>
+            <div class="form-group">
+                <label class="form-label">密码 *</label>
+                <input type="password" class="form-input" id="new-user-password" placeholder="至少6位密码">
+            </div>
+            <div class="form-group">
+                <label class="form-label">角色</label>
+                <select class="form-input" id="new-user-role">
+                    <option value="registered">普通用户</option>
+                    <option value="admin">管理员</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeAddUserModal()">取消</button>
+                <button class="btn btn-primary" onclick="addUser()">添加</button>
+            </div>
+        </div>
+    `;
+    modal.addEventListener('click', () => closeAddUserModal());
+    document.body.appendChild(modal);
+}
 
-    const newPassword = prompt(`为用户 ${user.username} 设置新密码（至少6位）：`);
-    if (!newPassword || newPassword.length < 6) {
-        if (newPassword) alert('密码长度至少6位');
+function closeAddUserModal() {
+    const modal = document.getElementById('add-user-modal');
+    if (modal) modal.remove();
+}
+
+async function addUser() {
+    const username = document.getElementById('new-user-username').value.trim();
+    const email = document.getElementById('new-user-email').value.trim();
+    const password = document.getElementById('new-user-password').value;
+    const role = document.getElementById('new-user-role').value;
+
+    if (!username || !password) {
+        alert('请填写用户名和密码');
+        return;
+    }
+    if (password.length < 6) {
+        alert('密码长度至少为6位');
         return;
     }
 
-    if (!confirm(`确定将用户 ${user.username} 的密码重置为：${newPassword} 吗？`)) return;
+    try {
+        await apiRequest(`${API_BASE}/admin/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email: email || null, password, role })
+        });
+        closeAddUserModal();
+        showUserManagementPage();
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+function showResetPasswordModal(userId) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) return;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'reset-pwd-modal';
+    modal.innerHTML = `
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 class="modal-header">重置密码 - ${user.username}</h2>
+            <div class="form-group">
+                <label class="form-label">新密码 *</label>
+                <input type="password" class="form-input" id="reset-pwd-input" placeholder="至少6位">
+            </div>
+            <div class="form-group">
+                <label class="form-label">确认密码 *</label>
+                <input type="password" class="form-input" id="reset-pwd-confirm" placeholder="再次输入新密码">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeResetPasswordModal()">取消</button>
+                <button class="btn btn-primary" onclick="resetUserPassword(${userId})">确认重置</button>
+            </div>
+        </div>
+    `;
+    modal.addEventListener('click', () => closeResetPasswordModal());
+    document.body.appendChild(modal);
+}
+
+function closeResetPasswordModal() {
+    const modal = document.getElementById('reset-pwd-modal');
+    if (modal) modal.remove();
+}
+
+async function resetUserPassword(userId) {
+    const password = document.getElementById('reset-pwd-input').value;
+    const confirm = document.getElementById('reset-pwd-confirm').value;
+
+    if (password.length < 6) {
+        alert('密码长度至少为6位');
+        return;
+    }
+    if (password !== confirm) {
+        alert('两次输入的密码不一致');
+        return;
+    }
 
     try {
         await apiRequest(`${API_BASE}/admin/users/${userId}/reset-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: newPassword })
+            body: JSON.stringify({ password })
         });
+        closeResetPasswordModal();
         alert('密码重置成功');
     } catch (e) {
         alert(e.message);
