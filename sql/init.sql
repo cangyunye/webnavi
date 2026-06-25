@@ -169,7 +169,17 @@ INSERT INTO resources (category_id, name, url, description, status) VALUES
 (8, 'Public APIs', 'https://github.com/public-apis/public-apis', '开源 API 集合，收录各种免费 API 接口', 1),
 (8, 'Papers With Code', 'https://paperswithcode.com', '机器学习论文 + 数据集 + 代码实现汇总', 1),
 (8, 'Hugging Face Datasets', 'https://huggingface.co/datasets', '开源机器学习数据集仓库', 1),
-(8, 'DevDocs', 'https://devdocs.io', '开发者文档聚合查询工具', 1);
+(8, 'DevDocs', 'https://devdocs.io', '开发者文档聚合查询工具', 1),
+(5, 'Postman', 'https://postman.com', 'API 测试与调试工具', 1),
+(5, 'Selenium', 'https://selenium.dev', '浏览器自动化测试框架', 1),
+(5, 'Jest', 'https://jestjs.io', 'JavaScript 测试框架', 1),
+(5, 'JMeter', 'https://jmeter.apache.org', '性能测试与负载测试工具', 1),
+(5, 'Swagger', 'https://swagger.io', 'API 文档与测试工具', 1),
+(7, 'Grafana', 'https://grafana.com', '监控与可视化平台', 1),
+(7, 'Prometheus', 'https://prometheus.io', '系统监控与告警套件', 1),
+(7, 'Jenkins', 'https://jenkins.io', 'CI/CD 持续集成平台', 1),
+(7, 'Ansible', 'https://ansible.com', '配置管理与自动化工具', 1),
+(7, 'ELK Stack', 'https://elastic.co', '日志采集与分析平台', 1);
 
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
