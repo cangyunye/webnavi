@@ -20,12 +20,21 @@ from deps import get_current_user
 router = APIRouter(prefix="/api", tags=["资源"])
 
 
-def check_category_permission(current_user: User, category_name: str, db: Session):
+def can_read(current_user: User, category_name: str) -> bool:
     if current_user.role == "admin":
         return True
-    
-    public_categories = ["学习", "AI", "软件资源", "测试", "工具"]
-    return category_name in public_categories
+    if current_user.role in ("learning_mentor", "ops_expert"):
+        return True
+    return category_name in ["学习", "AI", "软件资源", "测试", "工具"]
+
+def can_manage(current_user: User, category_name: str) -> bool:
+    if current_user.role == "admin":
+        return True
+    if current_user.role == "learning_mentor":
+        return category_name in ["学习", "软件资源", "AI", "工具", "测试"]
+    if current_user.role == "ops_expert":
+        return category_name in ["运维", "数据库", "研发机器"]
+    return False
 
 
 def machine_to_response(machine: DevMachine) -> DevMachineResponse:
@@ -174,11 +183,8 @@ def get_dev_machines(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if not check_category_permission(current_user, "研发机器", db):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="您没有访问研发机器的权限"
-        )
+    if not can_read(current_user, "研发机器"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有访问研发机器的权限")
 
     query = db.query(DevMachine)
 
@@ -201,11 +207,8 @@ def get_dev_machine(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if not check_category_permission(current_user, "研发机器", db):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="您没有访问研发机器的权限"
-        )
+    if not can_read(current_user, "研发机器"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有访问研发机器的权限")
 
     machine = db.query(DevMachine).filter(DevMachine.id == machine_id).first()
     if not machine:
@@ -222,11 +225,8 @@ def get_db_instances(
     organization_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)):
-    if not check_category_permission(current_user, "数据库", db):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="您没有访问数据库的权限"
-        )
+    if not can_read(current_user, "数据库"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有访问数据库的权限")
 
     query = db.query(DbInstance)
 
@@ -250,11 +250,8 @@ def get_db_instance(
     instance_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)):
-    if not check_category_permission(current_user, "数据库", db):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="您没有访问数据库的权限"
-        )
+    if not can_read(current_user, "数据库"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有访问数据库的权限")
 
     instance = db.query(DbInstance).filter(DbInstance.id == instance_id).first()
     if not instance:
@@ -269,14 +266,12 @@ def get_resources(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "admin":
-        public_categories = ["学习", "AI", "软件资源", "测试", "工具"]
-        from models import Category
-        category = db.query(Category).filter(Category.id == category_id).first()
-        if not category or category.name not in public_categories:
-            if current_user.role == "guest":
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="访客用户没有访问此分类的权限，请先登录")
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="仅管理员可访问此分类")
+    from models import Category
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if category and not can_read(current_user, category.name):
+        if current_user.role == "guest":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="访客用户没有访问此分类的权限，请先登录")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有访问此分类的权限")
 
     query = db.query(Resource).filter(Resource.category_id == category_id)
 
@@ -293,10 +288,12 @@ def create_resource(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "guest":
+    from models import Category
+    cat = db.query(Category).filter(Category.id == resource_data.category_id).first()
+    if not cat or not can_manage(current_user, cat.name):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="访客用户没有添加资源的权限，请先登录"
+            detail="没有添加资源的权限"
         )
 
     db_resource = Resource(
@@ -318,15 +315,17 @@ def delete_resource(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "guest":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="访客用户没有删除资源的权限，请先登录"
-        )
-
     resource = db.query(Resource).filter(Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="资源未找到")
+
+    from models import Category
+    cat = db.query(Category).filter(Category.id == resource.category_id).first()
+    if not cat or not can_manage(current_user, cat.name):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="没有删除资源的权限"
+        )
 
     db.delete(resource)
     db.commit()
@@ -339,11 +338,8 @@ def create_dev_machine(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "admin" and not current_user.can_edit:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="您没有添加研发机器的权限"
-        )
+    if not can_manage(current_user, "研发机器"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有添加研发机器的权限")
 
     db_machine = DevMachine(
         name=machine_data.name,
@@ -373,11 +369,8 @@ def update_dev_machine(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "admin" and not current_user.can_edit:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="您没有修改研发机器的权限"
-        )
+    if not can_manage(current_user, "研发机器"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有修改研发机器的权限")
 
     machine = db.query(DevMachine).filter(DevMachine.id == machine_id).first()
     if not machine:
@@ -408,11 +401,8 @@ def delete_dev_machine(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "admin" and not current_user.can_delete:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="您没有删除研发机器的权限"
-        )
+    if not can_manage(current_user, "研发机器"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有删除研发机器的权限")
 
     machine = db.query(DevMachine).filter(DevMachine.id == machine_id).first()
     if not machine:
@@ -429,11 +419,8 @@ def create_db_instance(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "admin" and not current_user.can_edit:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="您没有添加数据库实例的权限"
-        )
+    if not can_manage(current_user, "数据库"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有添加数据库实例的权限")
 
     db_instance = DbInstance(
         name=instance_data.name,
@@ -461,11 +448,8 @@ def update_db_instance(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "admin" and not current_user.can_edit:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="您没有修改数据库实例的权限"
-        )
+    if not can_manage(current_user, "数据库"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有修改数据库实例的权限")
 
     instance = db.query(DbInstance).filter(DbInstance.id == instance_id).first()
     if not instance:
@@ -494,11 +478,8 @@ def delete_db_instance(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "admin" and not current_user.can_delete:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="您没有删除数据库实例的权限"
-        )
+    if not can_manage(current_user, "数据库"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有删除数据库实例的权限")
 
     instance = db.query(DbInstance).filter(DbInstance.id == instance_id).first()
     if not instance:

@@ -81,7 +81,7 @@ def update_user_role(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
-    if role_data.role not in ["guest", "registered", "admin"]:
+    if role_data.role not in ["guest", "registered", "learning_mentor", "ops_expert", "admin"]:
         raise HTTPException(status_code=400, detail="无效的角色")
 
     user = db.query(User).filter(User.id == user_id).first()
@@ -154,7 +154,7 @@ def admin_create_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
-    if user_data.role not in ["registered", "admin"]:
+    if user_data.role not in ["registered", "learning_mentor", "ops_expert", "admin"]:
         raise HTTPException(status_code=400, detail="无效的角色")
 
     if len(user_data.password) < 6:

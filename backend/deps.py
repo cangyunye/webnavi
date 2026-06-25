@@ -196,15 +196,12 @@ async def get_current_user(
 
 
 def check_permission(user: User, category_id: Optional[int] = None) -> bool:
-    guest_categories = ["学习", "AI", "软件资源", "测试", "工具"]
-
     if user.role == "admin":
         return True
-
-    if user.role == "registered":
+    if user.role in ("learning_mentor", "ops_expert"):
         return True
-
-    if user.role == "guest":
+    public_categories = ["学习", "AI", "软件资源", "测试", "工具"]
+    if user.role in ("guest", "registered"):
         if category_id:
             from models import Category
             from database import SessionLocal
@@ -212,10 +209,9 @@ def check_permission(user: User, category_id: Optional[int] = None) -> bool:
             try:
                 category = db.query(Category).filter(Category.id == category_id).first()
                 db.close()
-                if category and category.name in guest_categories:
+                if category and category.name in public_categories:
                     return True
             finally:
                 db.close()
         return False
-
     return False

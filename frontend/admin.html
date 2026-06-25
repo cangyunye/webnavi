@@ -170,7 +170,9 @@
       <div class="form-group"><label class="form-label">密码</label><input class="form-input" id="au-pass" type="password" placeholder="至少 6 位" /></div>
       <div class="form-group"><label class="form-label">角色</label>
         <select class="form-input" id="au-role">
-          <option value="registered">普通用户</option>
+          <option value="registered">注册用户（只读）</option>
+          <option value="learning_mentor">学习导师</option>
+          <option value="ops_expert">运维专家</option>
           <option value="admin">管理员</option>
         </select>
       </div>
@@ -289,13 +291,17 @@
       document.getElementById('userCountDisplay').textContent = active.length;
       document.getElementById('userTotal').textContent = active.length;
       const tbody = document.getElementById('userTableBody');
-      tbody.innerHTML = active.map(u => `<tr>
+      tbody.innerHTML = active.map(u => {
+        const isManaged = u.role === 'learning_mentor' || u.role === 'ops_expert';
+        return `<tr>
         <td><strong>${u.username}</strong></td>
         <td>${u.email || '-'}</td>
         <td>
           <select class="filter-select" style="height:28px;padding:0 24px 0 8px;font-size:0.8rem" onchange="updateUserRole(${u.id},this.value)">
             <option value="guest" ${u.role==='guest'?'selected':''}>访客</option>
             <option value="registered" ${u.role==='registered'?'selected':''}>注册用户</option>
+            <option value="learning_mentor" ${u.role==='learning_mentor'?'selected':''}>学习导师</option>
+            <option value="ops_expert" ${u.role==='ops_expert'?'selected':''}>运维专家</option>
             <option value="admin" ${u.role==='admin'?'selected':''}>管理员</option>
           </select>
         </td>
@@ -303,12 +309,13 @@
           <label class="toggle"><input type="checkbox" ${u.is_active===1?'checked':''} onchange="toggleUserStatus(${u.id},this.checked?1:0)" /><span class="slider"></span></label>
           <span class="small" style="margin-left:4px">${u.is_active===1?'启用':'禁用'}</span>
         </td>
-        <td><label class="toggle"><input type="checkbox" ${u.can_edit?'checked':''} onchange="updateActions(${u.id},'can_edit',this.checked)"/><span class="slider"></span></label></td>
-        <td><label class="toggle"><input type="checkbox" ${u.can_delete?'checked':''} onchange="updateActions(${u.id},'can_delete',this.checked)"/><span class="slider"></span></label></td>
+        <td>${isManaged ? '<span class="small" style="color:var(--fg-3)">由角色控制</span>' : `<label class="toggle"><input type="checkbox" ${u.can_edit?'checked':''} onchange="updateActions(${u.id},'can_edit',this.checked)"/><span class="slider"></span></label>`}</td>
+        <td>${isManaged ? '<span class="small" style="color:var(--fg-3)">由角色控制</span>' : `<label class="toggle"><input type="checkbox" ${u.can_delete?'checked':''} onchange="updateActions(${u.id},'can_delete',this.checked)"/><span class="slider"></span></label>`}</td>
         <td class="action-cell">
           <button class="btn btn-ghost btn-sm" onclick="openResetPwModal(${u.id},'${u.username}')" title="重置密码">🔑</button>
         </td>
-      </tr>`).join('');
+      </tr>`;
+      }).join('');
     }
 
     async function updateUserRole(userId, role) {

@@ -202,8 +202,8 @@
 
     async function init() {
       currentUser = getUser();
-      if (!currentUser || currentUser.role !== 'admin') {
-        alert('仅管理员可访问运维管理页面');
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'ops_expert')) {
+        alert('仅管理员和运维专家可访问运维管理页面');
         location.href = 'index.html';
         return;
       }
@@ -222,12 +222,13 @@
 
     function buildSidebar() {
       const ICON_MAP = { 1:'📚',2:'🗄️',3:'🖥️',4:'🤖',5:'🧪',6:'💿',7:'⚙️',8:'🛠️' };
-      const GUEST_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
+      const PUBLIC_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
+      const hasFullAccess = currentUser && (currentUser.role === 'admin' || currentUser.role === 'learning_mentor' || currentUser.role === 'ops_expert');
       const nav = document.getElementById('sidebarNav');
       nav.innerHTML = '<button class="sidebar-nav-item" onclick="location.href=\'index.html\'"><span class="icon">🏠</span><span class="label">首页</span></button>';
       ['学习','数据库','研发机器','AI','测试','软件资源','运维','工具'].forEach((name, i) => {
         const id = i + 1;
-        const restricted = !GUEST_CATS[id] && (!currentUser || currentUser.role === 'guest');
+        const restricted = !PUBLIC_CATS[id] && !hasFullAccess;
         const target = name === '数据库' ? 'devops.html#databases' : name === '研发机器' ? 'devops.html#machines' : 'category.html?id=' + id;
         const active = (name === '数据库' && location.hash === '#databases') || (name === '研发机器' && location.hash !== '#databases') ? ' active' : '';
         nav.innerHTML += `<button class="sidebar-nav-item${restricted?' restricted':''}${active}" onclick="location.href='${target}'"><span class="icon">${ICON_MAP[id]||'📂'}</span><span class="label">${name}</span></button>`;
@@ -243,8 +244,9 @@
       const right = document.getElementById('topbarRight');
       const themeIcon = document.documentElement.classList.contains('dark-theme') ? '☀️' : '🌙';
       if (currentUser) {
+        const roleMap = { admin:'管理员', ops_expert:'运维专家', learning_mentor:'学习导师', registered:'注册用户' };
         right.innerHTML = `<button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">${themeIcon}</button>
-          <span class="small">${currentUser.role === 'admin' ? '管理员' : '注册用户'}</span>
+          <span class="small">${roleMap[currentUser.role] || '注册用户'}</span>
           <button class="btn btn-ghost btn-sm" onclick="logout()">退出</button>`;
       } else {
         right.innerHTML = `<button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">${themeIcon}</button>

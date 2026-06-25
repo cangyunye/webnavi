@@ -90,7 +90,15 @@
     initTheme();
     const ICON_MAP = { '学习':'📚','数据库':'🗄️','研发机器':'🖥️','AI':'🤖','测试':'🧪','软件资源':'💿','运维':'⚙️','工具':'🛠️' };
     const PUBLIC_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
-    function isRestricted(id) { return !PUBLIC_CATS[id] && (!currentUser || currentUser.role !== 'admin'); }
+    function hasFullAccess() { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'learning_mentor' || currentUser.role === 'ops_expert'); }
+    function isRestricted(id) { return !PUBLIC_CATS[id] && !hasFullAccess(); }
+    function canManageThis(id) {
+      if (!currentUser || currentUser.role === 'guest') return false;
+      if (currentUser.role === 'admin') return true;
+      if (currentUser.role === 'learning_mentor') return [1,4,5,6,8].includes(id);
+      if (currentUser.role === 'ops_expert') return [2,3,7].includes(id);
+      return false;
+    }
     let resources = [];
     let currentCat = null;
     let currentUser = null;
@@ -151,7 +159,8 @@
       if (currentUser) {
         loginBtn.style.display = 'none';
         badge.style.display = 'inline';
-        badge.textContent = currentUser.role === 'admin' ? '管理员' : '注册用户';
+        const roleMap = { admin:'管理员', learning_mentor:'学习导师', ops_expert:'运维专家', registered:'注册用户' };
+        badge.textContent = roleMap[currentUser.role] || '注册用户';
         if (!document.getElementById('logoutBtn')) {
           const btn = document.createElement('button');
           btn.className = 'btn btn-ghost btn-sm';
@@ -161,9 +170,7 @@
           badge.parentNode.appendChild(btn);
         }
       }
-      if (!currentUser || currentUser.role === 'guest') {
-        document.getElementById('addBtn').style.display = 'none';
-      }
+      document.getElementById('addBtn').style.display = currentCat && canManageThis(currentCat.id) ? '' : 'none';
     }
 
     async function loadResources() {
@@ -187,12 +194,12 @@
             <div class="rc-title">${r.name}</div>
             <div class="rc-desc">${r.description || ''}</div>
           </div>
-          ${currentUser && currentUser.role !== 'guest' ? `
+          ${canManageThis(currentCat.id) ? `
             <button class="rc-delete" onclick="event.preventDefault();event.stopPropagation();openConfirm(${r.id})" title="删除">✕</button>
           ` : ''}
         </a>
       `).join('') + `
-        ${currentUser && currentUser.role !== 'guest' ? '<div class="add-card" onclick="openAddModal()">+</div>' : ''}
+        ${canManageThis(currentCat.id) ? '<div class="add-card" onclick="openAddModal()">+</div>' : ''}
       `;
     }
 

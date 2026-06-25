@@ -56,7 +56,15 @@
   <script>
     initTheme();
     const PUBLIC_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
-    function isRestricted(id) { return !PUBLIC_CATS[id] && (!currentUser || currentUser.role !== 'admin'); }
+    function hasFullAccess() { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'learning_mentor' || currentUser.role === 'ops_expert'); }
+    function isRestricted(id) { return !PUBLIC_CATS[id] && !hasFullAccess(); }
+    function canManageCat(id, name) {
+      if (!currentUser) return false;
+      if (currentUser.role === 'admin') return true;
+      if (currentUser.role === 'learning_mentor') return [1,4,5,6,8].includes(id);
+      if (currentUser.role === 'ops_expert') return [2,3,7].includes(id);
+      return false;
+    }
     let categories = [];
     let currentUser = null;
 
@@ -80,6 +88,9 @@
       if (currentUser && currentUser.role !== 'guest') {
         fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'admin.html#apikeys\'"><span class="icon">🔑</span><span class="label">API Key</span></button>';
       }
+      if (currentUser && currentUser.role === 'ops_expert') {
+        fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'devops.html\'"><span class="icon">⚙️</span><span class="label">运维管理</span></button>';
+      }
       footer.innerHTML = fHtml;
     }
 
@@ -91,8 +102,10 @@
         alert('仅管理员可访问此页面');
         return;
       }
-      if (cat.name === '数据库') { location.href = 'devops.html#databases'; return; }
-      if (cat.name === '研发机器') { location.href = 'devops.html#machines'; return; }
+      if ((cat.name === '数据库' || cat.name === '研发机器') && hasFullAccess()) {
+        location.href = cat.name === '数据库' ? 'devops.html#databases' : 'devops.html#machines';
+        return;
+      }
       location.href = 'category.html?id=' + id;
     }
 
@@ -116,8 +129,9 @@
       const right = document.getElementById('topbarRight');
       const themeIcon = document.documentElement.classList.contains('dark-theme') ? '☀️' : '🌙';
       if (currentUser) {
+        const roleMap = { admin:'管理员', learning_mentor:'学习导师', ops_expert:'运维专家', registered:'注册用户' };
         right.innerHTML = `<button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">${themeIcon}</button>
-          <span class="small">${currentUser.role === 'admin' ? '管理员' : '注册用户'}</span>
+          <span class="small">${roleMap[currentUser.role] || '注册用户'}</span>
           <div class="user-avatar" title="${currentUser.username}">${currentUser.username[0].toUpperCase()}</div>
           <button class="btn btn-ghost btn-sm" onclick="logout()">退出</button>`;
       } else {
