@@ -134,14 +134,14 @@
       if (window.innerWidth <= 768) document.getElementById('mobileMenuBtn').style.display = 'grid';
     }
 
+    function goToCat(name) {
+      if (name === '数据库') { go('devops.html#databases'); return; }
+      if (name === '研发机器') { go('devops.html#machines'); return; }
+      const cat = categories.find(c => c.name === name);
+      if (cat) go('category.html?id=' + cat.id);
+    }
     function buildSidebar() {
       const nav = document.getElementById('sidebarNav');
-      function goToCat(name) {
-        if (name === '数据库') { go('devops.html#databases'); return; }
-        if (name === '研发机器') { go('devops.html#machines'); return; }
-        const cat = categories.find(c => c.name === name);
-        if (cat) go('category.html?id=' + cat.id);
-      }
       nav.innerHTML = '<button class="sidebar-nav-item" onclick="go(\'index.html\')"><span class="icon">🏠</span><span class="label">首页</span></button>' +
         categories.map(c => {
           const restricted = isRestricted(c.id);
