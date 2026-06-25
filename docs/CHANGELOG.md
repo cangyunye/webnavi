@@ -2,6 +2,54 @@
 
 所有重要的变更都将记录在此文件中。
 
+## [0.3.0] - 2025-06-25
+
+### 新增
+
+#### 角色体系
+- ✅ 新增 **学习导师 (learning_mentor)**：管理学习/AI/软件资源/测试/工具
+- ✅ 新增 **运维专家 (ops_expert)**：管理运维/数据库/研发机器
+- ✅ 注册用户改为只读，不再具备编辑/删除权限
+- ✅ `PUT /api/admin/users/{id}/actions` — 设置 can_edit/can_delete
+- ✅ 管理后台角色选择器支持 5 种角色
+- ✅ 学习导师/运维专家的 can_edit/can_delete 显示"由角色控制"
+
+#### 状态拓展
+- ✅ dev_machines.status 和 db_instances.status 从 TINYINT(0/1) 改为 VARCHAR，支持 online/offline/pending/error 四种状态
+- ✅ 统计卡片扩展为在线/待处理/故障/离线四色
+- ✅ 状态筛选支持全部四种状态
+- ✅ 滑出面板状态选择同步扩展
+
+#### 动态筛选与分页
+- ✅ 环境和数据库类型筛选从 `enum_items` API 动态获取
+- ✅ 客户端分页，默认 15/页，可切换 30/50/100
+- ✅ `<` `>` 翻页箭头
+
+#### 前端增强
+- ✅ 浅色/深色主题切换（右上角 🌙/☀️）
+- ✅ 主题持久化存储到 localStorage，所有页面共享
+- ✅ 右上角退出按钮（清除凭证跳转首页）
+- ✅ 统一 `go(url)` 导航函数，解决同 URL 无跳转问题
+- ✅ 侧边栏导航跨页面跳转修复（作用域 BUG、同页 hash 无响应）
+
+#### 示例数据
+- ✅ 测试分类：Postman, Selenium, Jest, JMeter, Swagger
+- ✅ 运维分类：Grafana, Prometheus, Jenkins, Ansible, ELK Stack
+
+### 变更
+
+- ✅ 公开分类访客和注册用户均有访问权限
+- ✅ 数据库/研发机器页面仅管理员和运维专家可访问
+- ✅ admin.html 补充缺失的"运维"侧边栏按钮
+- ✅ category.html / devops.html 侧边栏 数据库/研发机器 正确跳转 devops.html
+
+### 技术栈
+
+- ✅ 前端从单页 SPA（app.js）迁移为 5 页面独立 HTML + 共享 api.js
+- ✅ CSS 变量驱动主题，`.dark-theme` class 覆盖
+
+---
+
 ## [0.2.0] - 2025-05-02
 
 ### 新增
