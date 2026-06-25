@@ -259,6 +259,14 @@
       else switchTab('machines');
     }
 
+    function goToDevops(tab) {
+      if (location.pathname.endsWith('devops.html')) {
+        switchTab(tab);
+      } else {
+        location.href = 'devops.html#' + tab;
+      }
+    }
+
     function buildSidebar() {
       const ICON_MAP = { 1:'📚',2:'🗄️',3:'🖥️',4:'🤖',5:'🧪',6:'💿',7:'⚙️',8:'🛠️' };
       const PUBLIC_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
@@ -268,9 +276,9 @@
       ['学习','数据库','研发机器','AI','测试','软件资源','运维','工具'].forEach((name, i) => {
         const id = i + 1;
         const restricted = !PUBLIC_CATS[id] && !hasFullAccess;
-        const target = name === '数据库' ? 'devops.html#databases' : name === '研发机器' ? 'devops.html#machines' : 'category.html?id=' + id;
-        const active = (name === '数据库' && location.hash === '#databases') || (name === '研发机器' && location.hash !== '#databases') ? ' active' : '';
-        nav.innerHTML += `<button class="sidebar-nav-item${restricted?' restricted':''}${active}" onclick="location.href='${target}'"><span class="icon">${ICON_MAP[id]||'📂'}</span><span class="label">${name}</span></button>`;
+        const onClick = name === '数据库' ? "goToDevops('databases')" : name === '研发机器' ? "goToDevops('machines')" : "location.href='category.html?id=" + id + "'";
+        const active = (name === '数据库' && location.hash === '#databases') || (name === '研发机器' && location.hash === '#machines') ? ' active' : '';
+        nav.innerHTML += `<button class="sidebar-nav-item${restricted?' restricted':''}${active}" onclick="${onClick}"><span class="icon">${ICON_MAP[id]||'📂'}</span><span class="label">${name}</span></button>`;
       });
       const footer = document.getElementById('sidebarFooter');
       let fHtml = '';
