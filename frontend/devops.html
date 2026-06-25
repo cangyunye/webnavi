@@ -237,7 +237,7 @@
       currentUser = getUser();
       if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'ops_expert')) {
         alert('仅管理员和运维专家可访问运维管理页面');
-        location.href = 'index.html';
+        go('index.html');
         return;
       }
       renderTopbar();
@@ -263,7 +263,7 @@
       if (location.pathname.endsWith('devops.html')) {
         switchTab(tab);
       } else {
-        location.href = 'devops.html#' + tab;
+        go('devops.html#' + tab);
       }
     }
 
@@ -272,18 +272,18 @@
       const PUBLIC_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
       const hasFullAccess = currentUser && (currentUser.role === 'admin' || currentUser.role === 'learning_mentor' || currentUser.role === 'ops_expert');
       const nav = document.getElementById('sidebarNav');
-      nav.innerHTML = '<button class="sidebar-nav-item" onclick="location.href=\'index.html\'"><span class="icon">🏠</span><span class="label">首页</span></button>';
+      nav.innerHTML = '<button class="sidebar-nav-item" onclick="go(\'index.html\')"><span class="icon">🏠</span><span class="label">首页</span></button>';
       ['学习','数据库','研发机器','AI','测试','软件资源','运维','工具'].forEach((name, i) => {
         const id = i + 1;
         const restricted = !PUBLIC_CATS[id] && !hasFullAccess;
-        const onClick = name === '数据库' ? "goToDevops('databases')" : name === '研发机器' ? "goToDevops('machines')" : "location.href='category.html?id=" + id + "'";
+        const onClick = name === '数据库' ? "goToDevops('databases')" : name === '研发机器' ? "goToDevops('machines')" : "go('category.html?id=" + id + "')";
         const active = (name === '数据库' && location.hash === '#databases') || (name === '研发机器' && location.hash === '#machines') ? ' active' : '';
         nav.innerHTML += `<button class="sidebar-nav-item${restricted?' restricted':''}${active}" onclick="${onClick}"><span class="icon">${ICON_MAP[id]||'📂'}</span><span class="label">${name}</span></button>`;
       });
       const footer = document.getElementById('sidebarFooter');
       let fHtml = '';
-      if (currentUser && currentUser.role === 'admin') fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'admin.html\'"><span class="icon">🔧</span><span class="label">管理后台</span></button>';
-      if (currentUser && currentUser.role !== 'guest') fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'admin.html#apikeys\'"><span class="icon">🔑</span><span class="label">API Key</span></button>';
+      if (currentUser && currentUser.role === 'admin') fHtml += '<button class="sidebar-nav-item" onclick="go(\'admin.html\')"><span class="icon">🔧</span><span class="label">管理后台</span></button>';
+      if (currentUser && currentUser.role !== 'guest') fHtml += '<button class="sidebar-nav-item" onclick="go(\'admin.html#apikeys\')"><span class="icon">🔑</span><span class="label">API Key</span></button>';
       footer.innerHTML = fHtml;
     }
 
@@ -297,7 +297,7 @@
           <button class="btn btn-ghost btn-sm" onclick="logout()">退出</button>`;
       } else {
         right.innerHTML = `<button class="btn-icon theme-toggle" onclick="toggleTheme()" title="切换主题" style="font-size:1.1rem">${themeIcon}</button>
-          <button class="btn btn-ghost btn-sm" onclick="location.href='login.html'">登录</button>`;
+          <button class="btn btn-ghost btn-sm" onclick="go('login.html')">登录</button>`;
       }
     }
 

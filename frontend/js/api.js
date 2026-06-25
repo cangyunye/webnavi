@@ -43,6 +43,15 @@ function toggleTheme() {
   document.querySelectorAll('.theme-toggle').forEach(el => el.textContent = isDark ? '☀️' : '🌙');
 }
 
+function go(url) {
+  const base = window.location.origin;
+  if (location.href === base + '/' + url || location.href === base + '/frontend/' + url) {
+    location.reload();
+  } else {
+    location.href = url;
+  }
+}
+
 async function apiRequest(url, options = {}) {
   const token = getToken();
   const headers = { ...options.headers };

@@ -137,12 +137,12 @@
     function buildSidebar() {
       const nav = document.getElementById('sidebarNav');
       function goToCat(name) {
-        if (name === '数据库') { location.href = 'devops.html#databases'; return; }
-        if (name === '研发机器') { location.href = 'devops.html#machines'; return; }
+        if (name === '数据库') { go('devops.html#databases'); return; }
+        if (name === '研发机器') { go('devops.html#machines'); return; }
         const cat = categories.find(c => c.name === name);
-        if (cat) location.href = 'category.html?id=' + cat.id;
+        if (cat) go('category.html?id=' + cat.id);
       }
-      nav.innerHTML = '<button class="sidebar-nav-item" onclick="location.href=\'index.html\'"><span class="icon">🏠</span><span class="label">首页</span></button>' +
+      nav.innerHTML = '<button class="sidebar-nav-item" onclick="go(\'index.html\')"><span class="icon">🏠</span><span class="label">首页</span></button>' +
         categories.map(c => {
           const restricted = isRestricted(c.id);
           return `<button class="sidebar-nav-item${restricted?' restricted':''}${c.id===currentCat.id?' active':''}" onclick='goToCat("${c.name}")'><span class="icon">${ICON_MAP[c.name]||'📂'}</span><span class="label">${c.name}</span></button>`;
@@ -151,10 +151,10 @@
       const footer = document.getElementById('sidebarFooter');
       let fHtml = '';
       if (currentUser && currentUser.role === 'admin') {
-        fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'admin.html\'"><span class="icon">🔧</span><span class="label">管理后台</span></button>';
+        fHtml += '<button class="sidebar-nav-item" onclick="go(\'admin.html\')"><span class="icon">🔧</span><span class="label">管理后台</span></button>';
       }
       if (currentUser && currentUser.role !== 'guest') {
-        fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'admin.html#apikeys\'"><span class="icon">🔑</span><span class="label">API Key</span></button>';
+        fHtml += '<button class="sidebar-nav-item" onclick="go(\'admin.html#apikeys\')"><span class="icon">🔑</span><span class="label">API Key</span></button>';
       }
       footer.innerHTML = fHtml;
     }

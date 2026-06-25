@@ -69,18 +69,19 @@
         <button class="sidebar-toggle" onclick="toggleSidebar()">◀</button>
       </div>
       <nav class="sidebar-nav">
-        <button class="sidebar-nav-item" onclick="location.href='index.html'"><span class="icon">🏠</span><span class="label">首页</span></button>
-        <button class="sidebar-nav-item" onclick="location.href='category.html?id=1'"><span class="icon">📚</span><span class="label">学习</span></button>
-        <button class="sidebar-nav-item restricted" onclick="location.href='devops.html#databases'"><span class="icon">🗄️</span><span class="label">数据库</span></button>
-        <button class="sidebar-nav-item restricted" onclick="location.href='devops.html#machines'"><span class="icon">🖥️</span><span class="label">研发机器</span></button>
-        <button class="sidebar-nav-item" onclick="location.href='category.html?id=4'"><span class="icon">🤖</span><span class="label">AI</span></button>
-        <button class="sidebar-nav-item" onclick="location.href='category.html?id=5'"><span class="icon">🧪</span><span class="label">测试</span></button>
-        <button class="sidebar-nav-item" onclick="location.href='category.html?id=6'"><span class="icon">💿</span><span class="label">软件资源</span></button>
-        <button class="sidebar-nav-item" onclick="location.href='category.html?id=8'"><span class="icon">🛠️</span><span class="label">工具</span></button>
+        <button class="sidebar-nav-item" onclick="go('index.html')"><span class="icon">🏠</span><span class="label">首页</span></button>
+        <button class="sidebar-nav-item" onclick="go('category.html?id=1')"><span class="icon">📚</span><span class="label">学习</span></button>
+        <button class="sidebar-nav-item restricted" onclick="go('devops.html#databases')"><span class="icon">🗄️</span><span class="label">数据库</span></button>
+        <button class="sidebar-nav-item restricted" onclick="go('devops.html#machines')"><span class="icon">🖥️</span><span class="label">研发机器</span></button>
+        <button class="sidebar-nav-item" onclick="go('category.html?id=4')"><span class="icon">🤖</span><span class="label">AI</span></button>
+        <button class="sidebar-nav-item" onclick="go('category.html?id=5')"><span class="icon">🧪</span><span class="label">测试</span></button>
+        <button class="sidebar-nav-item" onclick="go('category.html?id=6')"><span class="icon">💿</span><span class="label">软件资源</span></button>
+        <button class="sidebar-nav-item" onclick="go('category.html?id=7')"><span class="icon">⚙️</span><span class="label">运维</span></button>
+        <button class="sidebar-nav-item" onclick="go('category.html?id=8')"><span class="icon">🛠️</span><span class="label">工具</span></button>
       </nav>
       <div class="sidebar-footer">
-        <button class="sidebar-nav-item active" onclick="location.href='admin.html'"><span class="icon">🔧</span><span class="label">管理后台</span></button>
-        <button class="sidebar-nav-item" onclick="location.href='admin.html#apikeys'"><span class="icon">🔑</span><span class="label">API Key</span></button>
+        <button class="sidebar-nav-item active" onclick="go('admin.html')"><span class="icon">🔧</span><span class="label">管理后台</span></button>
+        <button class="sidebar-nav-item" onclick="go('admin.html#apikeys')"><span class="icon">🔑</span><span class="label">API Key</span></button>
       </div>
     </aside>
 
