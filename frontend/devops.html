@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>运维 · ResourceNav</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .ops-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ops-tab {
+      padding: 10px 20px;
+      border: 0;
+      background: transparent;
+      color: var(--fg-3);
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      font-weight: 510;
+    }
+    .ops-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .ops-tab:hover:not(.active) { color: var(--fg-2); }
+    .ops-tab .badge { margin-left: 6px; }
+    .stat-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      min-width: 120px;
+    }
+    .stat-card .num {
+      font-family: var(--font-mono);
+      font-size: 1.3rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-card .label {
+      font-size: 0.78rem;
+      color: var(--fg-3);
+      letter-spacing: 0.02em;
+      margin-top: 2px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .table-wrap table.data-table { min-width: 900px; }
+    .table-wrap table.data-table th:first-child,
+    .table-wrap table.data-table td:first-child { padding-left: 16px; }
+    .table-wrap table.data-table th:last-child,
+    .table-wrap table.data-table td:last-child { padding-right: 16px; }
+    .action-cell { white-space: nowrap; }
+    .action-cell button { margin-right: 4px; }
+    .env-badge { display: inline-flex; align-items: center; padding: 0 8px; height: 22px; border-radius: 999px; font-size: 0.72rem; font-weight: 510; letter-spacing: 0.02em; }
+    .env-dev  { background: rgba(76,139,245,0.12); color: var(--accent); }
+    .env-test { background: rgba(168,85,247,0.12); color: #c084fc; }
+    .env-prod { background: rgba(239,68,68,0.12); color: #f87171; }
+    .env-staging { background: rgba(234,179,8,0.12); color: #facc15; }
+    .search-input {
+      height: 34px;
+      padding: 0 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--fg);
+      font-size: 0.85rem;
+      min-width: 180px;
+    }
+    .search-input:focus { outline: none; border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo">ResourceNav</span>
+        <button class="sidebar-toggle" onclick="toggleSidebar()">◀</button>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+      <div class="sidebar-footer" id="sidebarFooter"></div>
+    </aside>
+
+    <main class="main-content" id="mainContent">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="btn-icon" id="mobileMenuBtn" style="display:none">☰</button>
+          <nav class="breadcrumb">
+            <a href="index.html">首页</a>
+            <span class="sep">/</span>
+            <span id="pageBreadcrumb">运维</span>
+          </nav>
+        </div>
+        <div class="topbar-right" id="topbarRight"></div>
+      </header>
+
+      <div class="content-area">
+        <div class="ops-tabs">
+          <button class="ops-tab active" data-tab="machines" onclick="switchTab('machines')">
+            🖥️ 研发机器 <span class="badge badge-blue" id="machineCount">0</span>
+          </button>
+          <button class="ops-tab" data-tab="databases" onclick="switchTab('databases')">
+            🗄️ 数据库实例 <span class="badge badge-purple" id="dbCount">0</span>
+          </button>
+        </div>
+
+        <div id="view-machines">
+          <div class="stat-row">
+            <div class="stat-card"><span class="num" id="mTotal">0</span><div class="label">总机器</div></div>
+            <div class="stat-card"><span class="num" style="color:var(--success)" id="mOnline">0</span><div class="label">在线</div></div>
+            <div class="stat-card"><span class="num" style="color:var(--fg-3)" id="mOffline">0</span><div class="label">离线</div></div>
+          </div>
+          <div class="filter-bar">
+            <select class="filter-select" id="mEnvFilter" onchange="filterMachines()">
+              <option value="">全部环境</option>
+              <option value="dev">开发 (dev)</option>
+              <option value="test">测试 (test)</option>
+              <option value="prod">生产 (prod)</option>
+            </select>
+            <select class="filter-select" id="mStatusFilter" onchange="filterMachines()">
+              <option value="">全部状态</option>
+              <option value="1">在线</option>
+              <option value="0">离线</option>
+            </select>
+            <input class="search-input" id="mSearch" placeholder="搜索名称/IP…" oninput="filterMachines()" />
+            <button class="btn btn-primary btn-sm" onclick="openSlidePanel('machine', null)" id="addMachineBtn" style="display:none">+ 添加研发机器</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>名称</th><th>IP:端口</th><th>环境</th><th>状态</th><th>负责人</th><th>组织</th><th>CPU</th><th>内存</th><th>OS</th><th style="width:80px">操作</th></tr></thead>
+              <tbody id="machineTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="view-databases" style="display:none">
+          <div class="stat-row">
+            <div class="stat-card"><span class="num" id="dbTotal">0</span><div class="label">总实例</div></div>
+            <div class="stat-card"><span class="num" style="color:var(--success)" id="dbOnline">0</span><div class="label">在线</div></div>
+            <div class="stat-card"><span class="num" style="color:var(--fg-3)" id="dbOffline">0</span><div class="label">离线</div></div>
+          </div>
+          <div class="filter-bar">
+            <select class="filter-select" id="dbTypeFilter" oninput="filterDatabases()">
+              <option value="">全部类型</option>
+              <option>MySQL</option><option>PostgreSQL</option><option>Redis</option>
+              <option>MongoDB</option><option>Elasticsearch</option><option>ClickHouse</option>
+            </select>
+            <select class="filter-select" id="dbEnvFilter" onchange="filterDatabases()">
+              <option value="">全部环境</option>
+              <option value="dev">开发</option><option value="test">测试</option><option value="prod">生产</option>
+            </select>
+            <input class="search-input" id="dbSearch" placeholder="搜索名称/地址…" oninput="filterDatabases()" />
+            <button class="btn btn-primary btn-sm" onclick="openSlidePanel('database', null)" id="addDbBtn" style="display:none">+ 添加数据库</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>名称</th><th>类型</th><th>版本</th><th>地址</th><th>环境</th><th>状态</th><th>负责人</th><th>组织</th><th>字符集</th><th style="width:80px">操作</th></tr></thead>
+              <tbody id="dbTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="slide-panel-overlay" id="slideOverlay" onclick="closeSlidePanel()"></div>
+  <div class="slide-panel" id="slidePanel">
+    <div class="slide-panel-header">
+      <h3 id="slideTitle">添加</h3>
+      <button class="slide-panel-close" onclick="closeSlidePanel()">✕</button>
+    </div>
+    <div class="slide-panel-body" id="slideBody"></div>
+    <div class="slide-panel-footer">
+      <button class="btn btn-ghost" onclick="closeSlidePanel()">取消</button>
+      <button class="btn btn-primary" onclick="saveSlideForm()">保存</button>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    let machines = [];
+    let databases = [];
+    let currentTab = 'machines';
+    let currentUser = null;
+    let editTarget = null;
+    let orgs = [];
+    let owners = [];
+
+    async function init() {
+      currentUser = getUser();
+      renderTopbar();
+      buildSidebar();
+
+      try { orgs = await apiRequest('/organizations'); } catch { orgs = []; }
+      try { owners = await apiRequest('/owners'); } catch { owners = []; }
+
+      if (currentUser && (currentUser.role === 'admin' || currentUser.can_edit)) {
+        document.getElementById('addMachineBtn').style.display = '';
+        document.getElementById('addDbBtn').style.display = '';
+      }
+
+      if (location.hash === '#databases') switchTab('databases');
+      else switchTab('machines');
+    }
+
+    function buildSidebar() {
+      const ICON_MAP = { 1:'📚',2:'🗄️',3:'🖥️',4:'🤖',5:'🧪',6:'💿',7:'⚙️',8:'🛠️' };
+      const GUEST_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
+      const nav = document.getElementById('sidebarNav');
+      nav.innerHTML = '<button class="sidebar-nav-item" onclick="location.href=\'index.html\'"><span class="icon">🏠</span><span class="label">首页</span></button>';
+      ['学习','数据库','研发机器','AI','测试','软件资源','运维','工具'].forEach((name, i) => {
+        const id = i + 1;
+        const restricted = !GUEST_CATS[id] && (!currentUser || currentUser.role === 'guest');
+        const target = name === '数据库' ? 'devops.html#databases' : name === '研发机器' ? 'devops.html#machines' : 'category.html?id=' + id;
+        const active = (name === '数据库' && location.hash === '#databases') || (name === '研发机器' && location.hash !== '#databases') ? ' active' : '';
+        nav.innerHTML += `<button class="sidebar-nav-item${restricted?' restricted':''}${active}" onclick="location.href='${target}'"><span class="icon">${ICON_MAP[id]||'📂'}</span><span class="label">${name}</span></button>`;
+      });
+      const footer = document.getElementById('sidebarFooter');
+      let fHtml = '';
+      if (currentUser && currentUser.role === 'admin') fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'admin.html\'"><span class="icon">🔧</span><span class="label">管理后台</span></button>';
+      if (currentUser && currentUser.role !== 'guest') fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'admin.html#apikeys\'"><span class="icon">🔑</span><span class="label">API Key</span></button>';
+      footer.innerHTML = fHtml;
+    }
+
+    function renderTopbar() {
+      const right = document.getElementById('topbarRight');
+      if (currentUser) {
+        right.innerHTML = `<span class="small">${currentUser.role === 'admin' ? '管理员' : '注册用户'}</span>`;
+      } else {
+        right.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="location.href='login.html'">登录</button>`;
+      }
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.ops-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+      document.getElementById('view-machines').style.display = tab === 'machines' ? '' : 'none';
+      document.getElementById('view-databases').style.display = tab === 'databases' ? '' : 'none';
+      if (tab === 'machines') { loadMachines(); } else { loadDatabases(); }
+    }
+
+    async function loadMachines() {
+      try { machines = await apiRequest('/dev-machines'); } catch { machines = []; }
+      filterMachines();
+    }
+
+    async function loadDatabases() {
+      try { databases = await apiRequest('/db-instances'); } catch { databases = []; }
+      filterDatabases();
+    }
+
+    function filterMachines() {
+      const env = document.getElementById('mEnvFilter').value;
+      const status = document.getElementById('mStatusFilter').value;
+      const q = document.getElementById('mSearch').value.toLowerCase();
+      let filtered = machines.filter(m => {
+        if (env && m.environment !== env) return false;
+        if (status !== '' && m.status !== parseInt(status)) return false;
+        if (q && !m.name.toLowerCase().includes(q) && !m.ip.includes(q)) return false;
+        return true;
+      });
+      renderMachineTable(filtered);
+      const online = filtered.filter(m => m.status === 1).length;
+      document.getElementById('mTotal').textContent = filtered.length;
+      document.getElementById('mOnline').textContent = online;
+      document.getElementById('mOffline').textContent = filtered.length - online;
+      document.getElementById('machineCount').textContent = filtered.length;
+    }
+
+    function renderMachineTable(data) {
+      const tbody = document.getElementById('machineTableBody');
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--fg-3)">没有匹配的机器</td></tr>';
+        return;
+      }
+      const canEdit = currentUser && (currentUser.role === 'admin' || currentUser.can_edit);
+      const canDelete = currentUser && (currentUser.role === 'admin' || currentUser.can_delete);
+      tbody.innerHTML = data.map(m => {
+        const envClass = m.environment==='prod'?'env-prod':m.environment==='test'?'env-test':'env-dev';
+        return `<tr>
+          <td><strong>${m.name}</strong></td>
+          <td class="mono">${m.ip}:${m.port}</td>
+          <td><span class="env-badge ${envClass}">${m.environment}</span></td>
+          <td><span class="status-dot ${m.status===1?'online':'offline'}"></span>${m.status === 1 ? '在线' : '离线'}</td>
+          <td>${m.owner_name || '-'}</td>
+          <td>${m.organization_name || '-'}</td>
+          <td class="mono">${m.cpu || '-'}</td>
+          <td class="mono">${m.memory || '-'}</td>
+          <td>${m.os || '-'}</td>
+          <td class="action-cell">
+            ${canEdit ? `<button class="btn btn-ghost btn-sm" onclick="openSlidePanel('machine', ${m.id})">✎</button>` : ''}
+            ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="deleteItem('machine',${m.id},'${m.name}')">✕</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function filterDatabases() {
+      const type = document.getElementById('dbTypeFilter').value;
+      const env = document.getElementById('dbEnvFilter').value;
+      const q = document.getElementById('dbSearch').value.toLowerCase();
+      let filtered = databases.filter(d => {
+        if (type && d.db_type !== type) return false;
+        if (env && d.environment !== env) return false;
+        if (q && !d.name.toLowerCase().includes(q) && !d.ip.includes(q) && !`${d.ip}:${d.port}`.includes(q)) return false;
+        return true;
+      });
+      renderDbTable(filtered);
+      const online = filtered.filter(d => d.status === 1).length;
+      document.getElementById('dbTotal').textContent = filtered.length;
+      document.getElementById('dbOnline').textContent = online;
+      document.getElementById('dbOffline').textContent = filtered.length - online;
+      document.getElementById('dbCount').textContent = filtered.length;
+    }
+
+    function renderDbTable(data) {
+      const tbody = document.getElementById('dbTableBody');
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--fg-3)">没有匹配的数据库</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(d => {
+        const envClass = d.environment==='prod'?'env-prod':d.environment==='test'?'env-test':'env-dev';
+        return `<tr>
+          <td><strong>${d.name}</strong></td>
+          <td><span class="badge badge-purple">${d.db_type}</span></td>
+          <td class="mono">${d.version || '-'}</td>
+          <td class="mono">${d.ip}:${d.port}</td>
+          <td><span class="env-badge ${envClass}">${d.environment}</span></td>
+          <td><span class="status-dot ${d.status===1?'online':'offline'}"></span>${d.status === 1 ? '在线' : '离线'}</td>
+          <td>${d.owner_name || '-'}</td>
+          <td>${d.organization_name || '-'}</td>
+          <td class="mono">${d.charset || '-'}</td>
+          <td class="action-cell">
+            <button class="btn btn-ghost btn-sm" onclick="openSlidePanel('database', ${d.id})">✎</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteItem('database',${d.id},'${d.name}')">✕</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function openSlidePanel(type, id) {
+      editTarget = id ? { type, id } : null;
+      const isEdit = editTarget !== null;
+      const data = isEdit ? (type === 'machine' ? machines : databases).find(d => d.id === id) : null;
+      document.getElementById('slideTitle').textContent = isEdit ? '修改' + (type==='machine'?'研发机器':'数据库实例') : '添加' + (type==='machine'?'研发机器':'数据库实例');
+
+      const orgOpts = orgs.map(o => `<option value="${o.id}" ${isEdit && data.organization_id === o.id ? 'selected' : ''}>${o.name}</option>`).join('');
+      const ownerOpts = owners.map(o => `<option value="${o.id}" ${isEdit && data.owner_id === o.id ? 'selected' : ''}>${o.username}</option>`).join('');
+
+      if (type === 'machine') {
+        document.getElementById('slideBody').innerHTML = `
+          <div class="form-group"><label class="form-label">名称</label><input class="form-input" id="sf-name" value="${isEdit?data.name:''}" /></div>
+          <div class="form-group"><label class="form-label">IP 地址</label><input class="form-input" id="sf-ip" value="${isEdit?data.ip:''}" /></div>
+          <div class="form-group"><label class="form-label">SSH 端口</label><input class="form-input" id="sf-port" value="${isEdit?data.port:22}" /></div>
+          <div class="form-group"><label class="form-label">环境</label>
+            <select class="form-input" id="sf-env">
+              <option value="dev" ${isEdit&&data.environment==='dev'?'selected':''}>开发 (dev)</option>
+              <option value="test" ${isEdit&&data.environment==='test'?'selected':''}>测试 (test)</option>
+              <option value="prod" ${isEdit&&data.environment==='prod'?'selected':''}>生产 (prod)</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">状态</label>
+            <select class="form-input" id="sf-status">
+              <option value="1" ${isEdit&&data.status===1?'selected':''}>在线</option>
+              <option value="0" ${isEdit&&data.status===0?'selected':''}>离线</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">负责人</label>
+            <select class="form-input" id="sf-owner"><option value="">请选择</option>${ownerOpts}</select>
+          </div>
+          <div class="form-group"><label class="form-label">组织</label>
+            <select class="form-input" id="sf-org"><option value="">请选择</option>${orgOpts}</select>
+          </div>
+          <div class="form-group"><label class="form-label">CPU</label><input class="form-input" id="sf-cpu" value="${isEdit?data.cpu||'':''}" /></div>
+          <div class="form-group"><label class="form-label">内存</label><input class="form-input" id="sf-ram" value="${isEdit?data.memory||'':''}" /></div>
+          <div class="form-group"><label class="form-label">操作系统</label><input class="form-input" id="sf-os" value="${isEdit?data.os||'':''}" /></div>
+        `;
+      } else {
+        document.getElementById('slideBody').innerHTML = `
+          <div class="form-group"><label class="form-label">名称</label><input class="form-input" id="sf-name" value="${isEdit?data.name:''}" /></div>
+          <div class="form-group"><label class="form-label">类型</label>
+            <select class="form-input" id="sf-type">
+              <option>MySQL</option><option>PostgreSQL</option><option>Redis</option>
+              <option>MongoDB</option><option>Elasticsearch</option><option>ClickHouse</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">版本</label><input class="form-input" id="sf-ver" value="${isEdit?data.version||'':''}" /></div>
+          <div class="form-group"><label class="form-label">IP 地址</label><input class="form-input" id="sf-ip" value="${isEdit?data.ip:''}" /></div>
+          <div class="form-group"><label class="form-label">端口</label><input class="form-input" id="sf-port" value="${isEdit?data.port:3306}" /></div>
+          <div class="form-group"><label class="form-label">环境</label>
+            <select class="form-input" id="sf-env">
+              <option value="dev" ${isEdit&&data.environment==='dev'?'selected':''}>开发</option>
+              <option value="test" ${isEdit&&data.environment==='test'?'selected':''}>测试</option>
+              <option value="prod" ${isEdit&&data.environment==='prod'?'selected':''}>生产</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">状态</label>
+            <select class="form-input" id="sf-status">
+              <option value="1" ${isEdit&&data.status===1?'selected':''}>在线</option>
+              <option value="0" ${isEdit&&data.status===0?'selected':''}>离线</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">负责人</label>
+            <select class="form-input" id="sf-owner"><option value="">请选择</option>${ownerOpts}</select>
+          </div>
+          <div class="form-group"><label class="form-label">组织</label>
+            <select class="form-input" id="sf-org"><option value="">请选择</option>${orgOpts}</select>
+          </div>
+          <div class="form-group"><label class="form-label">字符集</label><input class="form-input" id="sf-charset" value="${isEdit?data.charset:'utf8mb4'}" /></div>
+        `;
+      }
+      document.getElementById('slidePanel').dataset.type = type;
+      document.getElementById('slideOverlay').classList.add('open');
+      document.getElementById('slidePanel').classList.add('open');
+    }
+
+    function closeSlidePanel() {
+      document.getElementById('slideOverlay').classList.remove('open');
+      document.getElementById('slidePanel').classList.remove('open');
+    }
+
+    function g(id) { return document.getElementById(id).value; }
+
+    async function saveSlideForm() {
+      const type = document.getElementById('slidePanel').dataset.type;
+      const isEdit = editTarget !== null;
+
+      const body = type === 'machine' ? {
+        name: g('sf-name'), ip: g('sf-ip'), port: parseInt(g('sf-port')),
+        environment: g('sf-env'), status: parseInt(g('sf-status')),
+        owner_id: g('sf-owner') ? parseInt(g('sf-owner')) : null,
+        organization_id: g('sf-org') ? parseInt(g('sf-org')) : null,
+        cpu: g('sf-cpu') || null, memory: g('sf-ram') || null, os: g('sf-os') || null
+      } : {
+        name: g('sf-name'), db_type: g('sf-type'), version: g('sf-ver') || null,
+        ip: g('sf-ip'), port: parseInt(g('sf-port')),
+        environment: g('sf-env'), status: parseInt(g('sf-status')),
+        owner_id: g('sf-owner') ? parseInt(g('sf-owner')) : null,
+        organization_id: g('sf-org') ? parseInt(g('sf-org')) : null,
+        charset: g('sf-charset') || 'utf8mb4'
+      };
+
+      if (!body.name) { alert('名称不能为空'); return; }
+
+      try {
+        const prefix = type === 'machine' ? '/dev-machines' : '/db-instances';
+        if (isEdit) {
+          await apiRequest(prefix + '/' + editTarget.id, { method: 'PUT', body: JSON.stringify(body) });
+        } else {
+          await apiRequest(prefix, { method: 'POST', body: JSON.stringify(body) });
+        }
+        closeSlidePanel();
+        if (currentTab === 'machines') await loadMachines();
+        else await loadDatabases();
+      } catch (e) { alert(e.message); }
+    }
+
+    async function deleteItem(type, id, name) {
+      if (!confirm('确定删除"' + name + '"吗？')) return;
+      try {
+        const prefix = type === 'machine' ? '/dev-machines' : '/db-instances';
+        await apiRequest(prefix + '/' + id, { method: 'DELETE' });
+        if (currentTab === 'machines') await loadMachines();
+        else await loadDatabases();
+      } catch (e) { alert(e.message); }
+    }
+
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+    init();
+  </script>
+</body>
+</html>

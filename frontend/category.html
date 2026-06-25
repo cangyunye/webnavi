@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>资源 · ResourceNav</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo">ResourceNav</span>
+        <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="切换侧边栏">◀</button>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav">
+      </nav>
+      <div class="sidebar-footer" id="sidebarFooter">
+      </div>
+    </aside>
+
+    <main class="main-content" id="mainContent">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="btn-icon" id="mobileMenuBtn" style="display:none">☰</button>
+          <nav class="breadcrumb" id="breadcrumb">
+            <a href="index.html">首页</a>
+            <span class="sep">/</span>
+            <span id="catTitle">加载中...</span>
+          </nav>
+        </div>
+        <div class="topbar-right">
+          <span class="small" id="userBadge" style="display:none">注册用户</span>
+          <button class="btn btn-ghost btn-sm" id="loginBtn" onclick="location.href='login.html'">登录</button>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <div class="page-header">
+          <div class="page-header-left">
+            <span id="catIcon" style="font-size:1.8rem;margin-right:4px"></span>
+            <h1 id="catName">加载中...</h1>
+            <span class="badge badge-blue" id="catCount">0 个资源</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="addBtn" onclick="openAddModal()">+ 添加资源</button>
+        </div>
+
+        <div class="resource-grid" id="resourceGrid">
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <div class="modal-title">添加资源</div>
+      <div class="form-group">
+        <label class="form-label">资源名称</label>
+        <input class="form-input" id="resName" placeholder="如：DevDocs" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">资源链接</label>
+        <input class="form-input" id="resUrl" placeholder="https://..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">描述（可选）</label>
+        <textarea class="form-input" id="resDesc" placeholder="简短说明这个资源" rows="3"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeAddModal()">取消</button>
+        <button class="btn btn-primary" onclick="handleAdd()">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-overlay" id="confirmDel">
+    <div class="confirm-dialog">
+      <h3>确认删除</h3>
+      <p id="confirmMsg">确定要删除这个资源吗？</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeConfirm()">取消</button>
+        <button class="btn btn-danger" onclick="handleDelete()">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    const ICON_MAP = { '学习':'📚','数据库':'🗄️','研发机器':'🖥️','AI':'🤖','测试':'🧪','软件资源':'💿','运维':'⚙️','工具':'🛠️' };
+    const GUEST_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
+    let resources = [];
+    let currentCat = null;
+    let currentUser = null;
+    let deleteTarget = null;
+    let categories = [];
+
+    async function init() {
+      currentUser = getUser();
+
+      const params = new URLSearchParams(location.search);
+      const id = parseInt(params.get('id') || '8');
+
+      try { categories = await apiRequest('/categories'); } catch { categories = []; }
+      currentCat = categories.find(c => c.id === id);
+      if (!currentCat) { location.href = 'index.html'; return; }
+
+      document.getElementById('catIcon').textContent = ICON_MAP[currentCat.name] || '📂';
+      document.getElementById('catName').textContent = currentCat.name;
+      document.getElementById('catTitle').textContent = currentCat.name;
+
+      buildSidebar();
+      renderTopbar();
+      await loadResources();
+
+      if (window.innerWidth <= 768) document.getElementById('mobileMenuBtn').style.display = 'grid';
+    }
+
+    function buildSidebar() {
+      const nav = document.getElementById('sidebarNav');
+      nav.innerHTML = '<button class="sidebar-nav-item" onclick="location.href=\'index.html\'"><span class="icon">🏠</span><span class="label">首页</span></button>' +
+        categories.map(c => {
+          const restricted = !GUEST_CATS[c.id] && (!currentUser || currentUser.role === 'guest');
+          return `<button class="sidebar-nav-item${restricted?' restricted':''}${c.id===currentCat.id?' active':''}" onclick="location.href='category.html?id=${c.id}'"><span class="icon">${ICON_MAP[c.name]||'📂'}</span><span class="label">${c.name}</span></button>`;
+        }).join('');
+
+      const footer = document.getElementById('sidebarFooter');
+      let fHtml = '';
+      if (currentUser && currentUser.role === 'admin') {
+        fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'admin.html\'"><span class="icon">🔧</span><span class="label">管理后台</span></button>';
+      }
+      if (currentUser && currentUser.role !== 'guest') {
+        fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'admin.html#apikeys\'"><span class="icon">🔑</span><span class="label">API Key</span></button>';
+      }
+      footer.innerHTML = fHtml;
+    }
+
+    function renderTopbar() {
+      if (currentUser) {
+        document.getElementById('loginBtn').style.display = 'none';
+        const badge = document.getElementById('userBadge');
+        badge.style.display = 'inline';
+        badge.textContent = currentUser.role === 'admin' ? '管理员' : '注册用户';
+      }
+      if (!currentUser || currentUser.role === 'guest') {
+        document.getElementById('addBtn').style.display = 'none';
+      }
+    }
+
+    async function loadResources() {
+      try {
+        resources = await apiRequest(`/resources/${currentCat.id}`);
+      } catch { resources = []; }
+      document.getElementById('catCount').textContent = resources.length + ' 个资源';
+      renderResources();
+    }
+
+    function renderResources() {
+      const grid = document.getElementById('resourceGrid');
+      if (resources.length === 0) {
+        grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>还没有资源，点击"添加资源"开始</p></div>';
+        return;
+      }
+      grid.innerHTML = resources.map(r => `
+        <a class="card resource-card" href="${r.url}" target="_blank" rel="noopener">
+          <div class="rc-icon">🔗</div>
+          <div class="rc-body">
+            <div class="rc-title">${r.name}</div>
+            <div class="rc-desc">${r.description || ''}</div>
+          </div>
+          ${currentUser && currentUser.role !== 'guest' ? `
+            <button class="rc-delete" onclick="event.preventDefault();event.stopPropagation();openConfirm(${r.id})" title="删除">✕</button>
+          ` : ''}
+        </a>
+      `).join('') + `
+        ${currentUser && currentUser.role !== 'guest' ? '<div class="add-card" onclick="openAddModal()">+</div>' : ''}
+      `;
+    }
+
+    function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+    function closeAddModal() {
+      document.getElementById('addModal').classList.remove('open');
+      document.getElementById('resName').value = '';
+      document.getElementById('resUrl').value = '';
+      document.getElementById('resDesc').value = '';
+    }
+    async function handleAdd() {
+      const name = document.getElementById('resName').value.trim();
+      const url = document.getElementById('resUrl').value.trim();
+      const description = document.getElementById('resDesc').value.trim();
+      if (!name || !url) { alert('请填写资源名称和链接'); return; }
+      try {
+        await apiRequest('/resources', {
+          method: 'POST',
+          body: JSON.stringify({ category_id: currentCat.id, name, url, description: description || null, status: 1 })
+        });
+        closeAddModal();
+        await loadResources();
+      } catch (e) { alert(e.message); }
+    }
+
+    function openConfirm(id) {
+      deleteTarget = id;
+      const r = resources.find(r => r.id === id);
+      document.getElementById('confirmMsg').textContent = '确定要删除"' + (r ? r.name : '') + '"吗？此操作不可恢复。';
+      document.getElementById('confirmDel').classList.add('open');
+    }
+    function closeConfirm() { document.getElementById('confirmDel').classList.remove('open'); deleteTarget = null; }
+    async function handleDelete() {
+      if (deleteTarget === null) return;
+      try {
+        await apiRequest('/resources/' + deleteTarget, { method: 'DELETE' });
+        closeConfirm();
+        await loadResources();
+      } catch (e) { alert(e.message); }
+    }
+
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>登录 · ResourceNav</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: var(--bg);
+    }
+    .login-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 36px 32px 28px;
+      box-shadow: var(--shadow-lg);
+    }
+    .login-logo {
+      font-family: var(--font-mono);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-align: center;
+      margin-bottom: 4px;
+      letter-spacing: -0.02em;
+    }
+    .login-sub {
+      text-align: center;
+      color: var(--fg-3);
+      font-size: 0.85rem;
+      margin-bottom: 28px;
+    }
+    .login-tabs {
+      display: flex;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .login-tab {
+      flex: 1;
+      padding: 10px 0;
+      text-align: center;
+      border: 0;
+      background: transparent;
+      color: var(--fg-3);
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .login-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 510;
+    }
+    .login-tab:hover:not(.active) { color: var(--fg-2); }
+    .login-form { display: none; }
+    .login-form.active { display: block; }
+    .guest-link {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      font-size: 0.85rem;
+      color: var(--fg-3);
+      cursor: pointer;
+      padding: 8px;
+      border-radius: var(--radius-md);
+      transition: background 0.15s, color 0.15s;
+    }
+    .guest-link:hover {
+      background: var(--surface-2);
+      color: var(--fg-2);
+    }
+    .form-error {
+      color: var(--danger);
+      font-size: 0.8rem;
+      margin-top: -8px;
+      margin-bottom: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <div class="login-logo">ResourceNav</div>
+      <p class="login-sub">团队内部资源导航系统</p>
+
+      <div class="login-tabs">
+        <button class="login-tab active" data-tab="login" onclick="switchTab('login')">登录</button>
+        <button class="login-tab" data-tab="register" onclick="switchTab('register')">注册</button>
+      </div>
+
+      <div class="login-form active" id="form-login">
+        <div class="form-group">
+          <label class="form-label">用户名</label>
+          <input class="form-input" id="loginUsername" type="text" placeholder="输入用户名" autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">密码</label>
+          <input class="form-input" id="loginPassword" type="password" placeholder="输入密码" autocomplete="current-password" />
+        </div>
+        <div class="form-error" id="loginError"></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;height:42px" onclick="handleLogin()">
+          登录
+        </button>
+        <div class="guest-link" onclick="handleGuestLogin()">
+          访客一键登录 →
+        </div>
+      </div>
+
+      <div class="login-form" id="form-register">
+        <div class="form-group">
+          <label class="form-label">用户名</label>
+          <input class="form-input" id="regUsername" type="text" placeholder="至少 3 个字符，唯一" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">密码</label>
+          <input class="form-input" id="regPassword" type="password" placeholder="至少 6 位" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">邮箱（可选）</label>
+          <input class="form-input" id="regEmail" type="email" placeholder="your@email.com" />
+        </div>
+        <div class="form-error" id="registerError"></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;height:42px" onclick="handleRegister()">
+          注册
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    function switchTab(tab) {
+      document.querySelectorAll('.login-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+      document.querySelectorAll('.login-form').forEach(f => f.classList.toggle('active', f.id === 'form-' + tab));
+    }
+
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    async function handleLogin() {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+      if (!username || !password) { showError('loginError', '请填写用户名和密码'); return; }
+
+      try {
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('password', password);
+        const data = await apiRequest('/auth/login', { method: 'POST', body: formData });
+        setAuth(data.access_token, data.user);
+        window.location.href = 'index.html';
+      } catch (e) {
+        showError('loginError', e.message);
+      }
+    }
+
+    async function handleRegister() {
+      const username = document.getElementById('regUsername').value.trim();
+      const password = document.getElementById('regPassword').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      if (!username || username.length < 3) { showError('registerError', '用户名至少 3 个字符'); return; }
+      if (!password || password.length < 6) { showError('registerError', '密码至少 6 位'); return; }
+
+      try {
+        const data = await apiRequest('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ username, password, email: email || null })
+        });
+        setAuth(data.access_token, data.user);
+        window.location.href = 'index.html';
+      } catch (e) {
+        showError('registerError', e.message);
+      }
+    }
+
+    async function handleGuestLogin() {
+      try {
+        const data = await apiRequest('/auth/guest', { method: 'POST' });
+        setAuth(data.access_token, data.user);
+        window.location.href = 'index.html';
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const active = document.querySelector('.login-form.active');
+        if (active.id === 'form-login') handleLogin();
+        else handleRegister();
+      }
+    });
+  </script>
+</body>
+</html>

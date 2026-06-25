@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>管理后台 · ResourceNav</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .admin-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .admin-tab {
+      padding: 10px 20px;
+      border: 0;
+      background: transparent;
+      color: var(--fg-3);
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      font-weight: 510;
+    }
+    .admin-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .admin-tab:hover:not(.active) { color: var(--fg-2); }
+    .user-count {
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+      color: var(--fg-2);
+    }
+    .user-count strong { color: var(--fg); }
+    .apikey-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .apikey-card .key-prefix {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--fg);
+    }
+    .apikey-card .key-meta {
+      font-size: 0.8rem;
+      color: var(--fg-3);
+    }
+    .key-reveal {
+      background: var(--accent-dim);
+      color: var(--accent);
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo">ResourceNav</span>
+        <button class="sidebar-toggle" onclick="toggleSidebar()">◀</button>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="sidebar-nav-item" onclick="location.href='index.html'"><span class="icon">🏠</span><span class="label">首页</span></button>
+        <button class="sidebar-nav-item" onclick="location.href='category.html?id=1'"><span class="icon">📚</span><span class="label">学习</span></button>
+        <button class="sidebar-nav-item restricted" onclick="location.href='devops.html#databases'"><span class="icon">🗄️</span><span class="label">数据库</span></button>
+        <button class="sidebar-nav-item restricted" onclick="location.href='devops.html#machines'"><span class="icon">🖥️</span><span class="label">研发机器</span></button>
+        <button class="sidebar-nav-item" onclick="location.href='category.html?id=4'"><span class="icon">🤖</span><span class="label">AI</span></button>
+        <button class="sidebar-nav-item" onclick="location.href='category.html?id=5'"><span class="icon">🧪</span><span class="label">测试</span></button>
+        <button class="sidebar-nav-item" onclick="location.href='category.html?id=6'"><span class="icon">💿</span><span class="label">软件资源</span></button>
+        <button class="sidebar-nav-item" onclick="location.href='category.html?id=8'"><span class="icon">🛠️</span><span class="label">工具</span></button>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="sidebar-nav-item active" onclick="location.href='admin.html'"><span class="icon">🔧</span><span class="label">管理后台</span></button>
+        <button class="sidebar-nav-item" onclick="location.href='admin.html#apikeys'"><span class="icon">🔑</span><span class="label">API Key</span></button>
+      </div>
+    </aside>
+
+    <main class="main-content" id="mainContent">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="btn-icon" id="mobileMenuBtn" style="display:none">☰</button>
+          <nav class="breadcrumb">
+            <a href="index.html">首页</a>
+            <span class="sep">/</span>
+            <span>管理后台</span>
+          </nav>
+        </div>
+        <div class="topbar-right">
+          <span class="small" id="userBadge">管理员</span>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <div class="admin-tabs">
+          <button class="admin-tab active" data-tab="users" onclick="switchAdminTab('users')">
+            👥 用户管理 <span class="badge badge-blue" id="userTotal">0</span>
+          </button>
+          <button class="admin-tab" data-tab="apikeys" onclick="switchAdminTab('apikeys')">
+            🔑 API Key 管理 <span class="badge badge-purple" id="apiKeyCount">0</span>
+          </button>
+          <button class="admin-tab" data-tab="credentials" onclick="switchAdminTab('credentials')">
+            🔒 凭据管理
+          </button>
+        </div>
+
+        <div id="view-users">
+          <div class="page-header">
+            <div class="user-count">共 <strong id="userCountDisplay">0</strong> 个用户</div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('addUserModal')">+ 添加用户</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>用户名</th>
+                  <th>邮箱</th>
+                  <th>角色</th>
+                  <th>状态</th>
+                  <th>可编辑</th>
+                  <th>可删除</th>
+                  <th style="width:100px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="view-apikeys" style="display:none">
+          <div class="page-header">
+            <div class="user-count">你的 API Key</div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('createKeyModal')">+ 创建 API Key</button>
+          </div>
+          <div id="apiKeyList"></div>
+        </div>
+
+        <div id="view-credentials" style="display:none">
+          <div class="page-header">
+            <div class="user-count">凭据管理 · 仅管理员可见</div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('addCredModal')">+ 添加凭据</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>资源</th><th>类型</th><th>用户名</th><th>密码</th><th style="width:80px">操作</th></tr></thead>
+              <tbody id="credTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add User Modal -->
+  <div class="modal-overlay" id="addUserModal">
+    <div class="modal">
+      <div class="modal-title">添加用户</div>
+      <div class="form-group"><label class="form-label">用户名</label><input class="form-input" id="au-name" placeholder="唯一" /></div>
+      <div class="form-group"><label class="form-label">邮箱</label><input class="form-input" id="au-email" type="email" placeholder="可选" /></div>
+      <div class="form-group"><label class="form-label">密码</label><input class="form-input" id="au-pass" type="password" placeholder="至少 6 位" /></div>
+      <div class="form-group"><label class="form-label">角色</label>
+        <select class="form-input" id="au-role">
+          <option value="registered">普通用户</option>
+          <option value="admin">管理员</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('addUserModal')">取消</button>
+        <button class="btn btn-primary" onclick="handleAddUser()">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div class="modal-overlay" id="resetPwModal">
+    <div class="modal">
+      <div class="modal-title">重置密码</div>
+      <p class="small" style="margin:-8px 0 16px; color:var(--fg-3)">为 <strong id="resetUserLabel">user</strong> 重置密码</p>
+      <div class="form-group"><label class="form-label">新密码</label><input class="form-input" id="rp-pass" type="password" placeholder="至少 6 位" /></div>
+      <div class="form-group"><label class="form-label">确认密码</label><input class="form-input" id="rp-confirm" type="password" placeholder="再次输入" /></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('resetPwModal')">取消</button>
+        <button class="btn btn-primary" onclick="handleResetPw()">确认重置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create API Key Modal -->
+  <div class="modal-overlay" id="createKeyModal">
+    <div class="modal">
+      <div class="modal-title">创建 API Key</div>
+      <div class="form-group"><label class="form-label">名称</label><input class="form-input" id="ck-name" placeholder="如：CI/CD 集成" /></div>
+      <div class="form-group"><label class="form-label">过期时间（可选）</label>
+        <select class="form-input" id="ck-expiry">
+          <option value="">永不过期</option>
+          <option value="7">7 天</option>
+          <option value="30">30 天</option>
+          <option value="90">90 天</option>
+          <option value="365">1 年</option>
+        </select>
+      </div>
+      <div id="keyRevealArea" style="display:none;margin-bottom:12px">
+        <div class="key-reveal" id="keyReveal"></div>
+        <p class="small" style="margin-top:6px;color:var(--fg-3)">密钥仅显示一次，请立即保存</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('createKeyModal')">取消</button>
+        <button class="btn btn-primary" onclick="handleCreateKey()">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Credential Modal -->
+  <div class="modal-overlay" id="addCredModal">
+    <div class="modal">
+      <div class="modal-title">添加凭据</div>
+      <div class="form-group"><label class="form-label">类型</label>
+        <select class="form-input" id="cred-type" onchange="updateCredResources()">
+          <option value="dev_machine">研发机器</option>
+          <option value="db_instance">数据库实例</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">关联资源</label>
+        <select class="form-input" id="cred-resource"></select>
+      </div>
+      <div class="form-group"><label class="form-label">用户名</label><input class="form-input" id="cred-user" /></div>
+      <div class="form-group"><label class="form-label">密码</label><input class="form-input" id="cred-pass" type="text" placeholder="明文" /></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('addCredModal')">取消</button>
+        <button class="btn btn-primary" onclick="handleAddCred()">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    let users = [];
+    let apiKeys = [];
+    let credentials = [];
+    let machines = [];
+    let dbInstances = [];
+    let currentAdminTab = 'users';
+    let currentUser = null;
+    let resetTarget = null;
+
+    async function init() {
+      currentUser = getUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        alert('仅管理员可访问管理后台');
+        location.href = 'index.html';
+        return;
+      }
+
+      if (location.hash === '#apikeys') switchAdminTab('apikeys');
+      else switchAdminTab('users');
+    }
+
+    function formatDate(d) {
+      if (!d) return '-';
+      try { return new Date(d).toLocaleString('zh-CN'); } catch { return '-'; }
+    }
+
+    function switchAdminTab(tab) {
+      currentAdminTab = tab;
+      document.querySelectorAll('.admin-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+      ['users','apikeys','credentials'].forEach(v => {
+        document.getElementById('view-' + v).style.display = v === tab ? '' : 'none';
+      });
+      if (tab === 'users') renderUsers();
+      else if (tab === 'apikeys') renderApiKeys();
+      else if (tab === 'credentials') renderCredentials();
+    }
+
+    /* ---- Users ---- */
+    async function renderUsers() {
+      try { users = await apiRequest('/admin/users'); } catch { users = []; }
+      const active = users.filter(u => u.id !== 0);
+      document.getElementById('userCountDisplay').textContent = active.length;
+      document.getElementById('userTotal').textContent = active.length;
+      const tbody = document.getElementById('userTableBody');
+      tbody.innerHTML = active.map(u => `<tr>
+        <td><strong>${u.username}</strong></td>
+        <td>${u.email || '-'}</td>
+        <td>
+          <select class="filter-select" style="height:28px;padding:0 24px 0 8px;font-size:0.8rem" onchange="updateUserRole(${u.id},this.value)">
+            <option value="guest" ${u.role==='guest'?'selected':''}>访客</option>
+            <option value="registered" ${u.role==='registered'?'selected':''}>注册用户</option>
+            <option value="admin" ${u.role==='admin'?'selected':''}>管理员</option>
+          </select>
+        </td>
+        <td>
+          <label class="toggle"><input type="checkbox" ${u.is_active===1?'checked':''} onchange="toggleUserStatus(${u.id},this.checked?1:0)" /><span class="slider"></span></label>
+          <span class="small" style="margin-left:4px">${u.is_active===1?'启用':'禁用'}</span>
+        </td>
+        <td><label class="toggle"><input type="checkbox" ${u.can_edit?'checked':''} onchange="updateActions(${u.id},'can_edit',this.checked)"/><span class="slider"></span></label></td>
+        <td><label class="toggle"><input type="checkbox" ${u.can_delete?'checked':''} onchange="updateActions(${u.id},'can_delete',this.checked)"/><span class="slider"></span></label></td>
+        <td class="action-cell">
+          <button class="btn btn-ghost btn-sm" onclick="openResetPwModal(${u.id},'${u.username}')" title="重置密码">🔑</button>
+        </td>
+      </tr>`).join('');
+    }
+
+    async function updateUserRole(userId, role) {
+      try { await apiRequest('/admin/users/' + userId + '/role', { method: 'PUT', body: JSON.stringify({ role }) }); } catch (e) { alert(e.message); }
+    }
+
+    async function toggleUserStatus(userId, isActive) {
+      try { await apiRequest('/admin/users/' + userId + '/status', { method: 'PUT', body: JSON.stringify({ is_active: isActive }) }); } catch (e) { alert(e.message); }
+    }
+
+    async function updateActions(userId, field, value) {
+      try {
+        const user = users.find(u => u.id === userId);
+        await apiRequest('/admin/users/' + userId + '/actions', {
+          method: 'PUT',
+          body: JSON.stringify({ can_edit: field === 'can_edit' ? value : !!user.can_edit, can_delete: field === 'can_delete' ? value : !!user.can_delete })
+        });
+      } catch (e) { alert(e.message); }
+    }
+
+    async function handleAddUser() {
+      const username = document.getElementById('au-name').value.trim();
+      const email = document.getElementById('au-email').value.trim();
+      const password = document.getElementById('au-pass').value;
+      const role = document.getElementById('au-role').value;
+      if (!username) { alert('请填写用户名'); return; }
+      if (!password || password.length < 6) { alert('密码至少 6 位'); return; }
+      try {
+        await apiRequest('/admin/users', { method: 'POST', body: JSON.stringify({ username, email: email || null, password, role }) });
+        closeModal('addUserModal');
+        document.getElementById('au-name').value = '';
+        document.getElementById('au-email').value = '';
+        document.getElementById('au-pass').value = '';
+        renderUsers();
+      } catch (e) { alert(e.message); }
+    }
+
+    function openResetPwModal(id, name) {
+      resetTarget = id;
+      document.getElementById('resetUserLabel').textContent = name;
+      openModal('resetPwModal');
+    }
+
+    async function handleResetPw() {
+      const p1 = document.getElementById('rp-pass').value;
+      const p2 = document.getElementById('rp-confirm').value;
+      if (!p1 || p1.length < 6) { alert('密码至少 6 位'); return; }
+      if (p1 !== p2) { alert('两次密码不一致'); return; }
+      try {
+        await apiRequest('/admin/users/' + resetTarget + '/reset-password', { method: 'POST', body: JSON.stringify({ password: p1 }) });
+        alert('密码重置成功');
+        closeModal('resetPwModal');
+        document.getElementById('rp-pass').value = '';
+        document.getElementById('rp-confirm').value = '';
+      } catch (e) { alert(e.message); }
+    }
+
+    /* ---- API Keys ---- */
+    async function renderApiKeys() {
+      try { apiKeys = await apiRequest('/api-keys'); } catch { apiKeys = []; }
+      document.getElementById('apiKeyCount').textContent = apiKeys.length;
+      const list = document.getElementById('apiKeyList');
+      if (apiKeys.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔑</div><p>还没有 API Key</p></div>';
+        return;
+      }
+      list.innerHTML = apiKeys.map(k => `
+        <div class="apikey-card">
+          <div>
+            <div class="key-prefix">${k.key_name}</div>
+            <div class="key-meta">
+              ${k.key_prefix}… · 
+              <span class="badge ${k.is_active===1?'badge-green':'badge-gray'}">${k.is_active===1?'启用':'禁用'}</span>
+              最后使用: ${formatDate(k.last_used_at)} · 创建: ${formatDate(k.create_time)}
+            </div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="deleteApiKey(${k.id},'${k.key_name}')">删除</button>
+        </div>
+      `).join('');
+    }
+
+    async function handleCreateKey() {
+      const name = document.getElementById('ck-name').value.trim();
+      if (!name) { alert('请填写名称'); return; }
+      const expiryDays = document.getElementById('ck-expiry').value;
+      const body = { key_name: name, scopes: [] };
+      if (expiryDays) {
+        const d = new Date();
+        d.setDate(d.getDate() + parseInt(expiryDays));
+        body.expires_at = d.toISOString();
+      }
+      try {
+        const result = await apiRequest('/api-keys', { method: 'POST', body: JSON.stringify(body) });
+        document.getElementById('keyReveal').textContent = result.api_key;
+        document.getElementById('keyRevealArea').style.display = 'block';
+        document.getElementById('ck-name').value = '';
+        renderApiKeys();
+      } catch (e) { alert(e.message); }
+    }
+
+    async function deleteApiKey(id, name) {
+      if (!confirm('确定删除 API Key "' + name + '"？')) return;
+      try { await apiRequest('/api-keys/' + id, { method: 'DELETE' }); renderApiKeys(); }
+      catch (e) { alert(e.message); }
+    }
+
+    /* ---- Credentials ---- */
+    async function renderCredentials() {
+      try {
+        [machines, dbInstances, credentials] = await Promise.all([
+          apiRequest('/dev-machines'), apiRequest('/db-instances'), apiRequest('/admin/credentials')
+        ]);
+      } catch { credentials = []; }
+      const tbody = document.getElementById('credTableBody');
+      if (credentials.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--fg-3)">暂无凭据</td></tr>';
+        return;
+      }
+      tbody.innerHTML = credentials.map(c => `
+        <tr>
+          <td><strong>${c.resource_name || '—'}</strong></td>
+          <td><span class="badge ${c.resource_type==='dev_machine'?'badge-blue':'badge-purple'}">${c.resource_type==='dev_machine'?'研发机器':'数据库实例'}</span></td>
+          <td class="mono">${c.username}</td>
+          <td class="mono">${c.password}</td>
+          <td class="action-cell">
+            <button class="btn btn-danger btn-sm" onclick="deleteCred(${c.id})">✕</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function updateCredResources() {
+      const type = document.getElementById('cred-type').value;
+      const select = document.getElementById('cred-resource');
+      const list = type === 'dev_machine' ? machines : dbInstances;
+      select.innerHTML = list.map(item => `<option value="${item.id}">${item.name}</option>`).join('');
+    }
+
+    async function handleAddCred() {
+      const resourceType = document.getElementById('cred-type').value;
+      const resourceId = parseInt(document.getElementById('cred-resource').value);
+      const username = document.getElementById('cred-user').value.trim();
+      const password = document.getElementById('cred-pass').value.trim();
+      if (!username || !password) { alert('请填写用户名和密码'); return; }
+      try {
+        await apiRequest('/admin/credentials', {
+          method: 'POST',
+          body: JSON.stringify({ resource_type: resourceType, resource_id: resourceId, username, password })
+        });
+        closeModal('addCredModal');
+        document.getElementById('cred-user').value = '';
+        document.getElementById('cred-pass').value = '';
+        renderCredentials();
+      } catch (e) { alert(e.message); }
+    }
+
+    async function deleteCred(id) {
+      if (!confirm('确定删除此凭据？')) return;
+      try { await apiRequest('/admin/credentials/' + id, { method: 'DELETE' }); renderCredentials(); }
+      catch (e) { alert(e.message); }
+    }
+
+    /* ---- Modal Helpers ---- */
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    document.querySelectorAll('.modal-overlay').forEach(el => {
+      el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+    });
+
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+    init();
+  </script>
+</body>
+</html>

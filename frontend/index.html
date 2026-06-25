@@ -1,54 +1,193 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ResourceNav - 资源导航</title>
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ResourceNav · 资源导航</title>
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-    <div class="app-container">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <span class="logo-icon">📁</span>
-                    <span class="logo-text">ResourceNav</span>
-                </div>
-                <button class="collapse-btn" id="collapse-btn" title="折叠/展开">
-                    <span class="collapse-icon">◀</span>
-                </button>
-            </div>
-            <nav class="nav-menu" id="nav-menu">
-            </nav>
-        </aside>
+  <div class="app-shell">
 
-        <main class="main-content">
-            <header class="content-header">
-                <h1 class="page-title" id="page-title">欢迎使用资源导航</h1>
-                <div class="header-actions" id="header-actions">
-                </div>
-                <div class="auth-container" id="auth-container">
-                </div>
-            </header>
-            <div class="content-body" id="content-body">
-                <div class="welcome-panel">
-                    <div class="welcome-icon">🌐</div>
-                    <h2>资源导航系统</h2>
-                    <p>请从左侧导航栏选择分类查看资源</p>
-                </div>
-            </div>
-        </main>
-    </div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo">ResourceNav</span>
+        <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="切换侧边栏">◀</button>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav">
+      </nav>
+      <div class="sidebar-footer" id="sidebarFooter">
+      </div>
+    </aside>
 
-    <div id="side-panel" class="side-panel">
-        <div class="side-panel-header">
-            <h2 id="side-panel-title">添加</h2>
-            <button class="close-btn" onclick="closeSidePanel()">×</button>
+    <main class="main-content" id="mainContent">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="btn-icon" onclick="toggleSidebar()" aria-label="菜单" style="display:none" id="mobileMenuBtn">☰</button>
+          <span class="topbar-title" id="pageTitle">首页</span>
         </div>
-        <div id="side-panel-body" class="side-panel-body">
+        <div class="topbar-right" id="topbarRight">
         </div>
-    </div>
+      </header>
 
-    <script src="js/app.js"></script>
+      <div class="content-area" id="contentArea">
+
+        <div id="homeView">
+          <div style="margin-bottom: 20px;">
+            <h1>资源导航</h1>
+            <p class="small" style="margin-top: 4px;">团队内部资源与工具统一入口</p>
+          </div>
+
+          <div class="category-grid" id="categoryGrid">
+          </div>
+
+          <div style="margin-top: 32px;">
+            <h2 style="margin-bottom: 12px;">常用工具</h2>
+            <div class="resource-grid" id="quickTools">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    const GUEST_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
+    let categories = [];
+    let currentUser = null;
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+    }
+
+    function buildSidebar() {
+      const nav = document.getElementById('sidebarNav');
+      nav.innerHTML = '<button class="sidebar-nav-item active" data-cat="0" onclick="goHome()"><span class="icon">🏠</span><span class="label">首页</span></button>' +
+        categories.map(c => {
+          const restricted = !GUEST_CATS[c.id] && (!currentUser || currentUser.role === 'guest');
+          return `<button class="sidebar-nav-item${restricted?' restricted':''}" data-cat="${c.id}" onclick="navigateTo(${c.id})"><span class="icon">${c.icon || '📂'}</span><span class="label">${c.name}</span></button>`;
+        }).join('');
+
+      const footer = document.getElementById('sidebarFooter');
+      let fHtml = '';
+      if (currentUser && currentUser.role === 'admin') {
+        fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'admin.html\'"><span class="icon">🔧</span><span class="label">管理后台</span></button>';
+      }
+      if (currentUser && currentUser.role !== 'guest') {
+        fHtml += '<button class="sidebar-nav-item" onclick="location.href=\'admin.html#apikeys\'"><span class="icon">🔑</span><span class="label">API Key</span></button>';
+      }
+      footer.innerHTML = fHtml;
+    }
+
+    function navigateTo(id) {
+      const cat = categories.find(c => c.id === id);
+      if (!cat) return;
+      if (!GUEST_CATS[id] && (!currentUser || currentUser.role === 'guest')) {
+        location.href = 'login.html';
+        return;
+      }
+      if (cat.name === '数据库') { location.href = 'devops.html#databases'; return; }
+      if (cat.name === '研发机器') { location.href = 'devops.html#machines'; return; }
+      location.href = 'category.html?id=' + id;
+    }
+
+    function goHome() { location.href = 'index.html'; }
+
+    function renderCategories() {
+      const grid = document.getElementById('categoryGrid');
+      grid.innerHTML = categories.map(c => {
+        const restricted = !GUEST_CATS[c.id] && (!currentUser || currentUser.role === 'guest');
+        return `<div class="card category-card" onclick="navigateTo(${c.id})" style="${restricted ? 'opacity:0.55' : ''}">
+          <div class="cat-bg" style="background:${c.color || '#4c8bf5'}"></div>
+          <div class="cat-icon">${c.icon || '📂'}</div>
+          <div class="cat-name">${c.name}</div>
+          <div class="cat-count">${c.count || 0} 个资源${c.name === '数据库' || c.name === '研发机器' ? ' · 运维表格' : ''}</div>
+          ${restricted ? '<div style="margin-top:6px"><span class="badge badge-gray">需登录</span></div>' : ''}
+        </div>`;
+      }).join('');
+    }
+
+    function renderTopbar() {
+      const right = document.getElementById('topbarRight');
+      if (currentUser) {
+        right.innerHTML = `<span class="small">${currentUser.role === 'admin' ? '管理员' : currentUser.role === 'registered' ? '注册用户' : '访客'}</span>
+          <div class="user-avatar" title="${currentUser.username}">${currentUser.username[0].toUpperCase()}</div>`;
+      } else {
+        right.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="location.href='login.html'">登录</button>`;
+      }
+    }
+
+    async function loadQuickTools() {
+      const container = document.getElementById('quickTools');
+      try {
+        const tools = await apiRequest('/resources/8');
+        if (tools.length === 0) { container.innerHTML = ''; return; }
+        container.innerHTML = tools.map(r => `
+          <a class="card resource-card" href="${r.url}" target="_blank" rel="noopener">
+            <div class="rc-icon">🔗</div>
+            <div class="rc-body">
+              <div class="rc-title">${r.name}</div>
+              <div class="rc-desc">${r.description || ''}</div>
+            </div>
+          </a>
+        `).join('');
+      } catch {
+        container.innerHTML = '';
+      }
+    }
+
+    async function init() {
+      currentUser = getUser();
+      renderTopbar();
+
+      try {
+        categories = await apiRequest('/categories');
+      } catch { categories = []; }
+
+      // Enrich with icons/colors for cards
+      const ICON_MAP = { '学习':'📚','数据库':'🗄️','研发机器':'🖥️','AI':'🤖','测试':'🧪','软件资源':'💿','运维':'⚙️','工具':'🛠️' };
+      const COLOR_MAP = { '学习':'#4c8bf5','数据库':'#22c55e','研发机器':'#eab308','AI':'#a855f7','测试':'#ef4444','软件资源':'#06b6d4','运维':'#f97316','工具':'#ec4899' };
+
+      // Fetch category resource counts
+      const countPromises = categories.map(async c => {
+        try {
+          if (c.name === '数据库' || c.name === '研发机器') return { id: c.id, count: 0 };
+          const resources = await apiRequest(`/resources/${c.id}`);
+          return { id: c.id, count: resources.length };
+        } catch { return { id: c.id, count: 0 }; }
+      });
+      const counts = await Promise.all(countPromises);
+      const countMap = {};
+      counts.forEach(cc => { countMap[cc.id] = cc.count; });
+
+      categories = categories.map(c => ({
+        ...c,
+        icon: ICON_MAP[c.name] || '📂',
+        color: COLOR_MAP[c.name] || '#4c8bf5',
+        count: countMap[c.id] || 0
+      }));
+
+      buildSidebar();
+      renderCategories();
+      loadQuickTools();
+
+      // Mobile toggle
+      if (window.innerWidth <= 768) {
+        document.getElementById('mobileMenuBtn').style.display = 'grid';
+        document.getElementById('sidebar').classList.remove('collapsed');
+      }
+      window.addEventListener('resize', () => {
+        const btn = document.getElementById('mobileMenuBtn');
+        btn.style.display = window.innerWidth <= 768 ? 'grid' : 'none';
+      });
+      document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('mobile-open');
+      });
+    }
+
+    init();
+  </script>
 </body>
 </html>
