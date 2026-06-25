@@ -241,7 +241,8 @@
     function renderTopbar() {
       const right = document.getElementById('topbarRight');
       if (currentUser) {
-        right.innerHTML = `<span class="small">${currentUser.role === 'admin' ? '管理员' : '注册用户'}</span>`;
+        right.innerHTML = `<span class="small">${currentUser.role === 'admin' ? '管理员' : '注册用户'}</span>
+          <button class="btn btn-ghost btn-sm" onclick="logout()">退出</button>`;
       } else {
         right.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="location.href='login.html'">登录</button>`;
       }

@@ -137,11 +137,20 @@
     }
 
     function renderTopbar() {
+      const loginBtn = document.getElementById('loginBtn');
+      const badge = document.getElementById('userBadge');
       if (currentUser) {
-        document.getElementById('loginBtn').style.display = 'none';
-        const badge = document.getElementById('userBadge');
+        loginBtn.style.display = 'none';
         badge.style.display = 'inline';
         badge.textContent = currentUser.role === 'admin' ? '管理员' : '注册用户';
+        if (!document.getElementById('logoutBtn')) {
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-ghost btn-sm';
+          btn.id = 'logoutBtn';
+          btn.textContent = '退出';
+          btn.onclick = logout;
+          badge.parentNode.appendChild(btn);
+        }
       }
       if (!currentUser || currentUser.role === 'guest') {
         document.getElementById('addBtn').style.display = 'none';

@@ -21,6 +21,11 @@ function clearAuth() {
   localStorage.removeItem('rn_user');
 }
 
+function logout() {
+  clearAuth();
+  location.href = 'index.html';
+}
+
 /* ---- Theme ---- */
 function themeIcon() { return document.documentElement.classList.contains('dark-theme') ? '☀️' : '🌙'; }
 

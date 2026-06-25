@@ -115,7 +115,8 @@
       const right = document.getElementById('topbarRight');
       if (currentUser) {
         right.innerHTML = `<span class="small">${currentUser.role === 'admin' ? '管理员' : currentUser.role === 'registered' ? '注册用户' : '访客'}</span>
-          <div class="user-avatar" title="${currentUser.username}">${currentUser.username[0].toUpperCase()}</div>`;
+          <div class="user-avatar" title="${currentUser.username}">${currentUser.username[0].toUpperCase()}</div>
+          <button class="btn btn-ghost btn-sm" onclick="logout()">退出</button>`;
       } else {
         right.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="location.href='login.html'">登录</button>`;
       }
