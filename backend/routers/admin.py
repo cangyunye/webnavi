@@ -24,6 +24,11 @@ class AdminUserCreate(BaseModel):
     password: str
     role: str = "registered"
 
+
+class UserActionPermissionsUpdate(BaseModel):
+    can_edit: bool = False
+    can_delete: bool = False
+
 router = APIRouter(prefix="/api/admin", tags=["用户管理"])
 
 
@@ -125,6 +130,22 @@ def reset_user_password(
     user.password_hash = bcrypt.hashpw(password_data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     db.commit()
     return {"message": "密码重置成功"}
+
+
+@router.put("/users/{user_id}/actions")
+def update_user_actions(
+    user_id: int,
+    actions: UserActionPermissionsUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户未找到")
+    user.can_edit = 1 if actions.can_edit else 0
+    user.can_delete = 1 if actions.can_delete else 0
+    db.commit()
+    return {"message": "操作权限更新成功"}
 
 
 @router.post("/users", response_model=UserResponse)

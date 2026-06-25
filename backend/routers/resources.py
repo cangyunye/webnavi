@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import Optional, List
 
@@ -29,17 +29,7 @@ def check_category_permission(current_user: User, category_name: str, db: Sessio
         return category_name in guest_categories
     
     if current_user.role == "registered":
-        if len(current_user.permissions) == 0:
-            return True
-        
-        category = db.query(Category).filter(Category.name == category_name).first()
-        if not category:
-            return False
-        
-        for perm in current_user.permissions:
-            if perm.category_id == category.id:
-                return True
-        return False
+        return True
     
     return False
 
@@ -184,7 +174,7 @@ def get_owner_resources(
 @router.get("/dev-machines", response_model=List[DevMachineResponse])
 def get_dev_machines(
     environment: Optional[str] = None,
-    status: Optional[int] = None,
+    device_status: Optional[int] = Query(None, alias="status"),
     owner_id: Optional[int] = None,
     organization_id: Optional[int] = None,
     db: Session = Depends(get_db),
@@ -200,8 +190,8 @@ def get_dev_machines(
 
     if environment:
         query = query.filter(DevMachine.environment == environment)
-    if status is not None:
-        query = query.filter(DevMachine.status == status)
+    if device_status is not None:
+        query = query.filter(DevMachine.status == device_status)
     if owner_id:
         query = query.filter(DevMachine.owner_id == owner_id)
     if organization_id:
@@ -233,7 +223,7 @@ def get_dev_machine(
 def get_db_instances(
     environment: Optional[str] = None,
     db_type: Optional[str] = None,
-    status: Optional[int] = None,
+    instance_status: Optional[int] = Query(None, alias="status"),
     owner_id: Optional[int] = None,
     organization_id: Optional[int] = None,
     db: Session = Depends(get_db),
@@ -250,8 +240,8 @@ def get_db_instances(
         query = query.filter(DbInstance.environment == environment)
     if db_type:
         query = query.filter(DbInstance.db_type == db_type)
-    if status is not None:
-        query = query.filter(DbInstance.status == status)
+    if instance_status is not None:
+        query = query.filter(DbInstance.status == instance_status)
     if owner_id:
         query = query.filter(DbInstance.owner_id == owner_id)
     if organization_id:
@@ -281,7 +271,7 @@ def get_db_instance(
 @router.get("/resources/{category_id}", response_model=List[ResourceResponse])
 def get_resources(
     category_id: int,
-    status: Optional[int] = None,
+    resource_status: Optional[int] = Query(None, alias="status"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -297,8 +287,8 @@ def get_resources(
 
     query = db.query(Resource).filter(Resource.category_id == category_id)
 
-    if status is not None:
-        query = query.filter(Resource.status == status)
+    if resource_status is not None:
+        query = query.filter(Resource.status == resource_status)
 
     resources = query.order_by(Resource.id.desc()).all()
     return resources
