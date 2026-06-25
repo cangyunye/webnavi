@@ -1118,3 +1118,19 @@ input:checked + .slider:before {
     background: rgba(59, 130, 246, 0.1);
     color: #2563eb;
 }
+
+/* 截断文本样式 */
+.truncated-text {
+    display: inline-block;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: help;
+    color: var(--text-secondary);
+}
+
+.truncated-text:hover {
+    text-decoration: underline;
+    color: var(--primary-color);
+}

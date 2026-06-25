@@ -116,20 +116,6 @@ class User(Base):
     create_time = Column(DateTime, server_default=func.now())
     update_time = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    permissions = relationship("UserPermission", back_populates="user")
-
-
-class UserPermission(Base):
-    __tablename__ = "user_permissions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    category_id = Column(Integer, ForeignKey("categories.id"))
-    permission_type = Column(String(20), default="view")
-    create_time = Column(DateTime, server_default=func.now())
-
-    user = relationship("User", back_populates="permissions")
-
 
 class Credential(Base):
     __tablename__ = "credentials"

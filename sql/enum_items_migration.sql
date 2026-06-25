@@ -26,7 +26,11 @@ INSERT INTO enum_items (enum_type, enum_value, enum_label, sort_order, color, ic
 ('environment', 'prod', '生产环境', 1, '#ef4444', '🚨'),
 ('environment', 'test', '测试环境', 2, '#a855f7', '🧪'),
 ('environment', 'dev', '开发环境', 3, '#3b82f6', '💻'),
-('environment', 'staging', '预发环境', 4, '#f59e0b', '🚀');
+('environment', 'staging', '预发环境', 4, '#f59e0b', '🚀'),
+('environment', 'sandbox', '沙箱环境', 5, '#10b981', '🏖️'),
+('environment', 'local', '本地环境', 6, '#6b7280', '💻'),
+('environment', 'uat', '用户验收环境', 7, '#8b5cf6', '🔮'),
+('environment', 'dr', '容灾环境', 8, '#f97316', '🛡️');
 
 -- 数据库类型
 INSERT INTO enum_items (enum_type, enum_value, enum_label, icon) VALUES
@@ -39,12 +43,31 @@ INSERT INTO enum_items (enum_type, enum_value, enum_label, icon) VALUES
 ('db_type', 'SQLite', 'SQLite', '📱'),
 ('db_type', 'SQL Server', 'SQL Server', '🪟'),
 ('db_type', 'Oracle', 'Oracle', '🔶'),
-('db_type', 'MariaDB', 'MariaDB', '⭐');
+('db_type', 'MariaDB', 'MariaDB', '⭐'),
+('db_type', 'OceanBase', 'OceanBase', '🌊'),
+('db_type', 'PolarDB', 'PolarDB', '🐬'),
+('db_type', 'TiDB', 'TiDB', '🌙'),
+('db_type', 'CockroachDB', 'CockroachDB', '🦗'),
+('db_type', 'StarRocks', 'StarRocks', '⭐'),
+('db_type', 'Doris', 'Apache Doris', '🌰');
 
 -- 资源类型
 INSERT INTO enum_items (enum_type, enum_value, enum_label, icon) VALUES
 ('resource_type', 'dev_machine', '研发机器', '🖥️'),
 ('resource_type', 'db_instance', '数据库实例', '🗄️');
+
+-- 归属组织
+INSERT INTO enum_items (enum_type, enum_value, enum_label) VALUES
+('organization', 'infrastructure', '基础架构部'),
+('organization', 'frontend', '前端研发组'),
+('organization', 'backend', '后端研发组'),
+('organization', 'ai_lab', 'AI实验室'),
+('organization', 'data_platform', '数据平台部'),
+('organization', 'cloud', '云计算中心'),
+('organization', 'security', '安全团队'),
+('organization', 'qa', '质量保障组'),
+('organization', 'ops', '运维组'),
+('organization', 'product', '产品组');
 
 -- 节点状态
 INSERT INTO enum_items (enum_type, enum_value, enum_label, color) VALUES

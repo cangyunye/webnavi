@@ -152,30 +152,13 @@ class UserLogin(BaseModel):
     password: str
 
 
-class UserPermissionInfo(BaseModel):
-    category_id: int
-    category_name: str
-    permission_type: str
-
-    class Config:
-        from_attributes = True
-
-
 class UserResponse(UserBase):
     id: int
     role: str
     is_active: int
     can_edit: bool = False
     can_delete: bool = False
-    permissions: List[UserPermissionInfo] = []
     create_time: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
-
-
-class UserWithPermissions(UserResponse):
-    pass
 
     class Config:
         from_attributes = True
@@ -189,20 +172,6 @@ class UserStatusUpdate(BaseModel):
     is_active: int
 
 
-class CategoryPermissionItem(BaseModel):
-    category_id: int
-    enabled: bool = True
-
-
-class UserCategoryPermissionsUpdate(BaseModel):
-    category_permissions: List[CategoryPermissionItem]
-
-
-class UserActionPermissionsUpdate(BaseModel):
-    can_edit: bool = False
-    can_delete: bool = False
-
-
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -211,24 +180,6 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     user_id: Optional[int] = None
-
-
-class UserPermissionBase(BaseModel):
-    category_id: Optional[int] = None
-    permission_type: str = "view"
-
-
-class UserPermissionCreate(UserPermissionBase):
-    pass
-
-
-class UserPermissionResponse(UserPermissionBase):
-    id: int
-    user_id: int
-    create_time: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 class CredentialBase(BaseModel):

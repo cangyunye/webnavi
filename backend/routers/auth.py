@@ -12,31 +12,6 @@ from deps import verify_password, get_password_hash, create_access_token, get_cu
 router = APIRouter(prefix="/api/auth", tags=["认证"])
 
 
-def user_to_response(user: User, db: Session) -> UserResponse:
-    from models import Category
-    permissions = []
-    for perm in user.permissions:
-        category = db.query(Category).filter(Category.id == perm.category_id).first()
-        if category:
-            permissions.append(UserPermissionInfo(
-                category_id=perm.category_id,
-                category_name=category.name,
-                permission_type=perm.permission_type
-            ))
-    
-    return UserResponse(
-        id=user.id,
-        username=user.username,
-        email=user.email,
-        role=user.role,
-        is_active=user.is_active,
-        can_edit=bool(user.can_edit),
-        can_delete=bool(user.can_delete),
-        permissions=permissions,
-        create_time=user.create_time
-    )
-
-
 @router.post("/register", response_model=Token)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == user_data.username).first()
@@ -75,7 +50,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     return Token(
         access_token=access_token,
         token_type="bearer",
-        user=user_to_response(db_user, db)
+        user=db_user
     )
 
 
@@ -101,7 +76,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return Token(
         access_token=access_token,
         token_type="bearer",
-        user=user_to_response(user, db)
+        user=user
     )
 
 
@@ -129,4 +104,4 @@ def guest_login():
 
 @router.get("/me", response_model=UserResponse)
 def read_users_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return user_to_response(current_user, db)
+    return current_user
