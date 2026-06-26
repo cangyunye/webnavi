@@ -320,16 +320,25 @@
     }
 
     async function toggleUserStatus(userId, isActive) {
-      try { await apiRequest('/admin/users/' + userId + '/status', { method: 'PUT', body: JSON.stringify({ is_active: isActive }) }); } catch (e) { alert(e.message); }
+      try {
+        await apiRequest('/admin/users/' + userId + '/status', { method: 'PUT', body: JSON.stringify({ is_active: isActive }) });
+        const u = users.find(u => u.id === userId);
+        if (u) u.is_active = isActive;
+        renderUsers();
+      } catch (e) { alert(e.message); }
     }
 
     async function updateActions(userId, field, value) {
       try {
         const user = users.find(u => u.id === userId);
+        if (!user) return;
         await apiRequest('/admin/users/' + userId + '/actions', {
           method: 'PUT',
           body: JSON.stringify({ can_edit: field === 'can_edit' ? value : !!user.can_edit, can_delete: field === 'can_delete' ? value : !!user.can_delete })
         });
+        user.can_edit = field === 'can_edit' ? (value ? 1 : 0) : user.can_edit;
+        user.can_delete = field === 'can_delete' ? (value ? 1 : 0) : user.can_delete;
+        renderUsers();
       } catch (e) { alert(e.message); }
     }
 
