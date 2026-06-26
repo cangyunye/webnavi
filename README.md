@@ -80,20 +80,13 @@ cd webnavi
 
 #### 2. 数据库配置
 
-初始化数据库：
+初始化数据库（自动创建全部表结构和示例数据）：
 
 ```bash
 mycli -h 127.0.0.1 -uroot -proot123456 -e "SOURCE sql/init.sql"
 ```
 
-执行额外迁移：
-
-```bash
-# API Key 和日志表
-mycli -h 127.0.0.1 -uroot -proot123456 resource_nav -e "SOURCE sql/api_keys_migration.sql"
-# 枚举项表
-mycli -h 127.0.0.1 -uroot -proot123456 resource_nav -e "SOURCE sql/enum_items_migration.sql"
-```
+`init.sql` 内部依次执行 `sql/schema.sql`（12 张表）和 `sql/seed.sql`（示例数据）。
 
 默认管理员账号：
 - 用户名：`admin`

@@ -3,12 +3,9 @@
 ## Quick start
 ```bash
 cd backend && cp .env.example .env   # edit DB creds
-mycli -h 127.0.0.1 -uroot -proot123456 -e "SOURCE ../sql/init.sql" 2>/dev/null
-mycli -h 127.0.0.1 -uroot -proot123456 resource_nav -e "SOURCE ../sql/api_keys_migration.sql" 2>/dev/null
-mycli -h 127.0.0.1 -uroot -proot123456 resource_nav -e "SOURCE ../sql/enum_items_migration.sql" 2>/dev/null
-mycli -h 127.0.0.1 -uroot -proot123456 resource_nav -e "SOURCE ../sql/nodes_migration.sql" 2>/dev/null
-uv sync
-python main.py
+mycli -h 127.0.0.1 -uroot -proot123456 -e "SOURCE ../sql/init.sql" 2>/dev/null   # schema + seed data
+uv sync                               # or: pip install -r requirements.txt
+python main.py                        # uvicorn hot-reload on :8000
 ```
 
 ## Test MySQL container
@@ -20,16 +17,15 @@ python main.py
 ### Fresh init (run in order)
 | File | Tables created |
 |------|---------------|
-| `sql/init.sql` | categories, organizations, owners, dev_machines, db_instances, resources, users, credentials |
-| `sql/api_keys_migration.sql` | api_keys, api_key_logs |
-| `sql/enum_items_migration.sql` | enum_items (11 types of seed data) |
-| `sql/nodes_migration.sql` | nodes (CMDB) |
+| `sql/init.sql` | 入口, 依次执行 schema.sql + seed.sql |
+| `sql/schema.sql` | 12 张表: categories, organizations, owners, dev_machines, db_instances, resources, users, credentials, api_keys, api_key_logs, enum_items, nodes |
+| `sql/seed.sql` | 8 categories, 6 organizations, 8 owners, 17 dev_machines, 16 db_instances, 32 resources, 1 管理员用户, 6 凭据, 66 枚举项 |
 
 ### Upgrade existing DB
 | File | When needed |
 |------|------------|
-| `sql/status_migration.sql` | DB has TINYINT status (old schema); converts to VARCHAR(20) |
-| `sql/sample_resources_migration.sql` | Missing 测试/运维 example resources |
+| `sql/status_migration.sql` | 旧版 TINYINT status → VARCHAR(20) 转换 |
+| `sql/sample_resources_migration.sql` | 补充 测试/运维 分类的示例资源 |
 
 ## Dependencies
 - Two manifests: `requirements.txt` (pip) **and** `pyproject.toml` + `uv.lock` (uv). Prefer `uv sync`.
