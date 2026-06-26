@@ -298,20 +298,16 @@
         <td><strong>${u.username}</strong></td>
         <td>${u.email || '-'}</td>
         <td>
-          <select class="filter-select" style="height:28px;padding:0 24px 0 8px;font-size:0.8rem" onchange="updateUserRole(${u.id},this.value)">
-            <option value="guest" ${u.role==='guest'?'selected':''}>访客</option>
-            <option value="registered" ${u.role==='registered'?'selected':''}>注册用户</option>
-            <option value="learning_mentor" ${u.role==='learning_mentor'?'selected':''}>学习导师</option>
-            <option value="ops_expert" ${u.role==='ops_expert'?'selected':''}>运维专家</option>
-            <option value="admin" ${u.role==='admin'?'selected':''}>管理员</option>
-          </select>
+          <span style="display:inline-flex;align-items:center;gap:6px">
+            <span class="badge ${u.role==='admin'?'badge-red':u.role==='learning_mentor'?'badge-blue':u.role==='ops_expert'?'badge-purple':u.role==='registered'?'badge-green':'badge-gray'}">${u.role==='admin'?'管理员':u.role==='learning_mentor'?'学习导师':u.role==='ops_expert'?'运维专家':u.role==='registered'?'注册用户':'访客'}</span>
+          </span>
         </td>
         <td>
           <label class="toggle"><input type="checkbox" ${u.is_active===1?'checked':''} onchange="toggleUserStatus(${u.id},this.checked?1:0)" /><span class="slider"></span></label>
-          <span class="small" style="margin-left:4px">${u.is_active===1?'启用':'禁用'}</span>
+          <span class="badge ${u.is_active===1?'badge-green':'badge-gray'}" style="margin-left:4px;font-size:0.72rem">${u.is_active===1?'启用':'禁用'}</span>
         </td>
-        <td>${isManaged ? '<span class="small" style="color:var(--fg-3)">由角色控制</span>' : `<label class="toggle"><input type="checkbox" ${u.can_edit?'checked':''} onchange="updateActions(${u.id},'can_edit',this.checked)"/><span class="slider"></span></label>`}</td>
-        <td>${isManaged ? '<span class="small" style="color:var(--fg-3)">由角色控制</span>' : `<label class="toggle"><input type="checkbox" ${u.can_delete?'checked':''} onchange="updateActions(${u.id},'can_delete',this.checked)"/><span class="slider"></span></label>`}</td>
+        <td>${isManaged ? '<span class="small" style="color:var(--fg-3)">由角色控制</span>' : `<span style="display:inline-flex;align-items:center;gap:6px"><label class="toggle"><input type="checkbox" ${u.can_edit?'checked':''} onchange="updateActions(${u.id},'can_edit',this.checked)"/><span class="slider"></span></label><span class="badge ${u.can_edit?'badge-green':'badge-gray'}" style="font-size:0.72rem">${u.can_edit?'是':'否'}</span></span>`}</td>
+        <td>${isManaged ? '<span class="small" style="color:var(--fg-3)">由角色控制</span>' : `<span style="display:inline-flex;align-items:center;gap:6px"><label class="toggle"><input type="checkbox" ${u.can_delete?'checked':''} onchange="updateActions(${u.id},'can_delete',this.checked)"/><span class="slider"></span></label><span class="badge ${u.can_delete?'badge-green':'badge-gray'}" style="font-size:0.72rem">${u.can_delete?'是':'否'}</span></span>`}</td>
         <td class="action-cell">
           <button class="btn btn-ghost btn-sm" onclick="openResetPwModal(${u.id},'${u.username}')" title="重置密码">🔑</button>
         </td>
