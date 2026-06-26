@@ -113,6 +113,9 @@
           <button class="admin-tab" data-tab="credentials" onclick="switchAdminTab('credentials')">
             🔒 凭据管理
           </button>
+          <button class="admin-tab" data-tab="orgs" onclick="switchAdminTab('orgs')">
+            🏢 组织与责任人
+          </button>
         </div>
 
         <div id="view-users">
@@ -158,8 +161,55 @@
             </table>
           </div>
         </div>
+
+        <div id="view-orgs" style="display:none">
+          <div class="page-header">
+            <div class="user-count">共 <strong id="orgCount">0</strong> 个组织 · <strong id="ownerCount">0</strong> 个责任人</div>
+          </div>
+
+          <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <div style="flex:1;min-width:300px">
+              <div class="page-header" style="margin-bottom:12px">
+                <h3 style="font-size:1rem">🏢 组织</h3>
+                <button class="btn btn-primary btn-sm" onclick="openOrgSlide(null)">+ 添加组织</button>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>名称</th><th>描述</th><th style="width:80px">操作</th></tr></thead>
+                  <tbody id="orgTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div style="flex:1;min-width:300px">
+              <div class="page-header" style="margin-bottom:12px">
+                <h3 style="font-size:1rem">👤 责任人</h3>
+                <button class="btn btn-primary btn-sm" onclick="openOwnerSlide(null)">+ 添加责任人</button>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>用户名</th><th>邮箱</th><th>电话</th><th>组织</th><th style="width:80px">操作</th></tr></thead>
+                  <tbody id="ownerTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
+  </div>
+
+  <!-- Slide Panel Overlay -->
+  <div class="slide-panel-overlay" id="slideOverlay" onclick="closeOrgSlide()"></div>
+  <div class="slide-panel" id="slidePanel">
+    <div class="slide-panel-header">
+      <h3 id="slideTitle">添加</h3>
+      <button class="slide-panel-close" onclick="closeOrgSlide()">✕</button>
+    </div>
+    <div class="slide-panel-body" id="slideBody"></div>
+    <div class="slide-panel-footer">
+      <button class="btn btn-ghost" onclick="closeOrgSlide()">取消</button>
+      <button class="btn btn-primary" onclick="saveSlideForm()">保存</button>
+    </div>
   </div>
 
   <!-- Add User Modal -->
@@ -277,12 +327,14 @@
     function switchAdminTab(tab) {
       currentAdminTab = tab;
       document.querySelectorAll('.admin-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-      ['users','apikeys','credentials'].forEach(v => {
-        document.getElementById('view-' + v).style.display = v === tab ? '' : 'none';
+      ['users','apikeys','credentials','orgs'].forEach(v => {
+        const el = document.getElementById('view-' + v);
+        if (el) el.style.display = v === tab ? '' : 'none';
       });
       if (tab === 'users') renderUsers();
       else if (tab === 'apikeys') renderApiKeys();
       else if (tab === 'credentials') renderCredentials();
+      else if (tab === 'orgs') renderOrgs();
     }
 
     /* ---- Users ---- */
@@ -340,6 +392,112 @@
         user.can_delete = field === 'can_delete' ? (value ? 1 : 0) : user.can_delete;
         renderUsers();
       } catch (e) { alert(e.message); }
+    }
+
+    /* ---- Orgs & Owners ---- */
+    let orgList = [], ownerList = [];
+    let slideMode = null; // { type:'org'|'owner', id:number|null }
+
+    async function renderOrgs() {
+      try { [orgList, ownerList] = await Promise.all([apiRequest('/organizations'), apiRequest('/owners')]); } catch {}
+      document.getElementById('orgCount').textContent = orgList.length;
+      document.getElementById('ownerCount').textContent = ownerList.length;
+      document.getElementById('orgTableBody').innerHTML = orgList.map(o => `
+        <tr>
+          <td><strong>${o.name}</strong></td>
+          <td class="small">${o.description || '-'}</td>
+          <td class="action-cell">
+            <button class="btn btn-ghost btn-sm" onclick="openOrgSlide(${o.id})">✎</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteOrg(${o.id},'${o.name}')">✕</button>
+          </td>
+        </tr>
+      `).join('');
+      const orgMap = {};
+      orgList.forEach(o => { orgMap[o.id] = o.name; });
+      document.getElementById('ownerTableBody').innerHTML = ownerList.map(o => `
+        <tr>
+          <td><strong>${o.username}</strong></td>
+          <td>${o.email || '-'}</td>
+          <td>${o.phone || '-'}</td>
+          <td class="small">${o.organization_name || '-'}</td>
+          <td class="action-cell">
+            <button class="btn btn-ghost btn-sm" onclick="openOwnerSlide(${o.id})">✎</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteOwner(${o.id},'${o.username}')">✕</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openOrgSlide(id) {
+      slideMode = { type: 'org', id };
+      const isEdit = id !== null;
+      const data = isEdit ? orgList.find(o => o.id === id) : null;
+      document.getElementById('slideTitle').textContent = isEdit ? '修改组织' : '添加组织';
+      document.getElementById('slideBody').innerHTML = `
+        <div class="form-group"><label class="form-label">名称</label><input class="form-input" id="sf-name" value="${isEdit?data.name:''}" /></div>
+        <div class="form-group"><label class="form-label">描述</label><textarea class="form-input" id="sf-desc" rows="3">${isEdit?data.description||'':''}</textarea></div>
+      `;
+      document.getElementById('slideOverlay').classList.add('open');
+      document.getElementById('slidePanel').classList.add('open');
+    }
+
+    function openOwnerSlide(id) {
+      slideMode = { type: 'owner', id };
+      const isEdit = id !== null;
+      const data = isEdit ? ownerList.find(o => o.id === id) : null;
+      const orgOpts = orgList.map(o => `<option value="${o.id}" ${isEdit&&data.organization_id===o.id?'selected':''}>${o.name}</option>`).join('');
+      document.getElementById('slideTitle').textContent = isEdit ? '修改责任人' : '添加责任人';
+      document.getElementById('slideBody').innerHTML = `
+        <div class="form-group"><label class="form-label">用户名</label><input class="form-input" id="sf-name" value="${isEdit?data.username:''}" /></div>
+        <div class="form-group"><label class="form-label">邮箱</label><input class="form-input" id="sf-email" value="${isEdit?data.email||'':''}" /></div>
+        <div class="form-group"><label class="form-label">电话</label><input class="form-input" id="sf-phone" value="${isEdit?data.phone||'':''}" /></div>
+        <div class="form-group"><label class="form-label">所属组织</label>
+          <select class="form-input" id="sf-org"><option value="">请选择</option>${orgOpts}</select>
+        </div>
+      `;
+      document.getElementById('slideOverlay').classList.add('open');
+      document.getElementById('slidePanel').classList.add('open');
+    }
+
+    function closeOrgSlide() {
+      document.getElementById('slideOverlay').classList.remove('open');
+      document.getElementById('slidePanel').classList.remove('open');
+    }
+
+    async function saveSlideForm() {
+      if (!slideMode) return;
+      const isEdit = slideMode.id !== null;
+      const g = id => document.getElementById(id).value;
+
+      if (slideMode.type === 'org') {
+        const body = { name: g('sf-name'), description: g('sf-desc') || null, parent_id: null };
+        if (!body.name) { alert('名称不能为空'); return; }
+        try {
+          if (isEdit) await apiRequest('/admin/organizations/' + slideMode.id, { method: 'PUT', body: JSON.stringify(body) });
+          else await apiRequest('/admin/organizations', { method: 'POST', body: JSON.stringify(body) });
+          closeOrgSlide();
+          renderOrgs();
+        } catch (e) { alert(e.message); }
+      } else {
+        const body = { username: g('sf-name'), email: g('sf-email') || null, phone: g('sf-phone') || null, organization_id: g('sf-org') ? parseInt(g('sf-org')) : null };
+        if (!body.username) { alert('用户名不能为空'); return; }
+        try {
+          if (isEdit) await apiRequest('/admin/owners/' + slideMode.id, { method: 'PUT', body: JSON.stringify(body) });
+          else await apiRequest('/admin/owners', { method: 'POST', body: JSON.stringify(body) });
+          closeOrgSlide();
+          renderOrgs();
+        } catch (e) { alert(e.message); }
+      }
+    }
+
+    async function deleteOrg(id, name) {
+      if (!confirm('确定删除组织"' + name + '"吗？')) return;
+      try { await apiRequest('/admin/organizations/' + id, { method: 'DELETE' }); renderOrgs(); } catch (e) { alert(e.message); }
+    }
+
+    async function deleteOwner(id, name) {
+      if (!confirm('确定删除责任人"' + name + '"吗？')) return;
+      try { await apiRequest('/admin/owners/' + id, { method: 'DELETE' }); renderOrgs(); } catch (e) { alert(e.message); }
     }
 
     async function handleAddUser() {

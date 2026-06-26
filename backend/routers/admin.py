@@ -5,7 +5,7 @@ from typing import List, Optional
 import bcrypt
 
 from database import get_db
-from models import User, Category, Credential, DevMachine, DbInstance
+from models import User, Category, Credential, DevMachine, DbInstance, Organization, Owner
 from schemas import (
     UserResponse,
     UserRoleUpdate,
@@ -13,7 +13,12 @@ from schemas import (
     UserCreate,
     CredentialCreate,
     CredentialUpdate,
-    CredentialResponse
+    CredentialResponse,
+    OrganizationBase,
+    OrganizationResponse,
+    OwnerBase,
+    OwnerResponse,
+    OwnerWithOrgName
 )
 from deps import get_current_user, get_password_hash
 
@@ -307,3 +312,99 @@ def delete_credential(
     db.delete(cred)
     db.commit()
     return {"message": "凭据删除成功"}
+
+
+@router.post("/organizations", response_model=OrganizationResponse)
+def admin_create_organization(
+    org_data: OrganizationBase,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    db_org = Organization(name=org_data.name, description=org_data.description, parent_id=org_data.parent_id)
+    db.add(db_org)
+    db.commit()
+    db.refresh(db_org)
+    return db_org
+
+
+@router.put("/organizations/{org_id}", response_model=OrganizationResponse)
+def admin_update_organization(
+    org_id: int,
+    org_data: OrganizationBase,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    org = db.query(Organization).filter(Organization.id == org_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="组织未找到")
+    org.name = org_data.name
+    org.description = org_data.description
+    org.parent_id = org_data.parent_id
+    db.commit()
+    db.refresh(org)
+    return org
+
+
+@router.delete("/organizations/{org_id}")
+def admin_delete_organization(
+    org_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    org = db.query(Organization).filter(Organization.id == org_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="组织未找到")
+    db.delete(org)
+    db.commit()
+    return {"message": "组织删除成功"}
+
+
+@router.post("/owners", response_model=OwnerResponse)
+def admin_create_owner(
+    owner_data: OwnerBase,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    db_owner = Owner(
+        username=owner_data.username,
+        email=owner_data.email,
+        phone=owner_data.phone,
+        organization_id=owner_data.organization_id
+    )
+    db.add(db_owner)
+    db.commit()
+    db.refresh(db_owner)
+    return db_owner
+
+
+@router.put("/owners/{owner_id}", response_model=OwnerResponse)
+def admin_update_owner(
+    owner_id: int,
+    owner_data: OwnerBase,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    owner = db.query(Owner).filter(Owner.id == owner_id).first()
+    if not owner:
+        raise HTTPException(status_code=404, detail="责任人未找到")
+    owner.username = owner_data.username
+    owner.email = owner_data.email
+    owner.phone = owner_data.phone
+    owner.organization_id = owner_data.organization_id
+    db.commit()
+    db.refresh(owner)
+    return owner
+
+
+@router.delete("/owners/{owner_id}")
+def admin_delete_owner(
+    owner_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    owner = db.query(Owner).filter(Owner.id == owner_id).first()
+    if not owner:
+        raise HTTPException(status_code=404, detail="责任人未找到")
+    db.delete(owner)
+    db.commit()
+    return {"message": "责任人删除成功"}
