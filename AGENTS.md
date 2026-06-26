@@ -17,9 +17,9 @@ python main.py                        # uvicorn hot-reload on :8000
 ### Fresh init (run in order)
 | File | Tables created |
 |------|---------------|
-| `sql/init.sql` | 入口, 依次执行 schema.sql + seed.sql |
-| `sql/schema.sql` | 12 张表: categories, organizations, owners, dev_machines, db_instances, resources, users, credentials, api_keys, api_key_logs, enum_items, nodes |
-| `sql/seed.sql` | 8 categories, 6 organizations, 8 owners, 17 dev_machines, 16 db_instances, 32 resources, 1 管理员用户, 6 凭据, 66 枚举项 |
+| `sql/init.sql` | 12 张表: categories, organizations, owners, dev_machines, db_instances, resources, users, credentials, api_keys, api_key_logs, enum_items, nodes + 全部示例数据 |
+| `sql/schema.sql` | 仅表结构（供查阅，init.sql 已包含） |
+| `sql/seed.sql` | 仅示例数据（供查阅，init.sql 已包含） |
 
 ### Upgrade existing DB
 | File | When needed |
