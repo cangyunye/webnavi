@@ -270,7 +270,7 @@
     function buildSidebar() {
       const ICON_MAP = { 1:'📚',2:'🗄️',3:'🖥️',4:'🤖',5:'🧪',6:'💿',7:'⚙️',8:'🛠️' };
       const PUBLIC_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
-      const hasFullAccess = currentUser && (currentUser.role === 'admin' || currentUser.role === 'learning_mentor' || currentUser.role === 'ops_expert');
+      const hasFullAccess = currentUser && (currentUser.role === 'admin' || currentUser.role === 'ops_expert');
       const nav = document.getElementById('sidebarNav');
       nav.innerHTML = '<button class="sidebar-nav-item" onclick="go(\'index.html\')"><span class="icon">🏠</span><span class="label">首页</span></button>';
       ['学习','数据库','研发机器','AI','测试','软件资源','运维','工具'].forEach((name, i) => {
@@ -326,7 +326,7 @@
       filteredMachines = machines.filter(m => {
         if (env && m.environment !== env) return false;
         if (status && m.status !== status) return false;
-        if (q && !m.name.toLowerCase().includes(q) && !m.ip.includes(q)) return false;
+        if (q && !m.name.toLowerCase().includes(q) && !m.ip.includes(q) && !(m.description||'').toLowerCase().includes(q)) return false;
         return true;
       });
       machinePage = 1;
@@ -388,7 +388,7 @@
         if (type && d.db_type !== type) return false;
         if (env && d.environment !== env) return false;
         if (status && d.status !== status) return false;
-        if (q && !d.name.toLowerCase().includes(q) && !d.ip.includes(q) && !`${d.ip}:${d.port}`.includes(q)) return false;
+        if (q && !d.name.toLowerCase().includes(q) && !d.ip.includes(q) && !`${d.ip}:${d.port}`.includes(q) && !(d.description||'').toLowerCase().includes(q)) return false;
         return true;
       });
       dbPage = 1;

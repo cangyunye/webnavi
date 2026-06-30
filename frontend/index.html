@@ -38,6 +38,16 @@
             <p class="small" style="margin-top: 4px;">团队内部资源与工具统一入口</p>
           </div>
 
+          <div class="filter-bar" style="margin-bottom:20px">
+            <input class="search-input" id="globalSearch" placeholder="搜索全部资源（名称/链接/描述）…" oninput="onGlobalSearch()" style="flex:1;min-width:200px" />
+            <span class="small" id="searchStatus" style="display:none">搜索中…</span>
+          </div>
+
+          <div id="searchResults" style="display:none">
+            <div class="page-header"><h2 style="font-size:1.1rem">搜索结果</h2><span class="small" id="resultCount"></span></div>
+            <div class="resource-grid" id="resultGrid"></div>
+          </div>
+
           <div class="category-grid" id="categoryGrid">
           </div>
 
@@ -53,10 +63,11 @@
   </div>
 
   <script src="js/api.js"></script>
+  <script src="js/search.js"></script>
   <script>
     initTheme();
     const PUBLIC_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
-    function hasFullAccess() { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'learning_mentor' || currentUser.role === 'ops_expert'); }
+    function hasFullAccess() { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'ops_expert'); }
     function isRestricted(id) { return !PUBLIC_CATS[id] && !hasFullAccess(); }
     function canManageCat(id, name) {
       if (!currentUser) return false;
@@ -140,23 +151,77 @@
       }
     }
 
-    async function loadQuickTools() {
+    let allResources = [];
+
+    async function ensureCache() {
+      let data = getCachedData();
+      if (data) { allResources = data; return; }
+      const catIds = [1,4,5,6,7,8];
+      const results = await Promise.all(catIds.map(id =>
+        apiRequest('/resources/' + id).catch(() => [])
+      ));
+      allResources = results.flat();
+      setCachedData(allResources);
+    }
+
+    function renderQuickTools() {
+      const tools = allResources.filter(r => r.category_id === 8);
       const container = document.getElementById('quickTools');
-      try {
-        const tools = await apiRequest('/resources/8');
-        if (tools.length === 0) { container.innerHTML = ''; return; }
-        container.innerHTML = tools.map(r => `
+      if (tools.length === 0) { container.innerHTML = ''; return; }
+      container.innerHTML = tools.map(r => `
+        <a class="card resource-card" href="${r.url}" target="_blank" rel="noopener">
+          <div class="rc-icon">🔗</div>
+          <div class="rc-body">
+            <div class="rc-title">${r.name}</div>
+            <div class="rc-desc">${r.description || ''}</div>
+          </div>
+        </a>
+      `).join('');
+    }
+
+    function countByCategory() {
+      const m = {};
+      allResources.forEach(r => { m[r.category_id] = (m[r.category_id] || 0) + 1; });
+      return m;
+    }
+
+    let searchTimer = null;
+    function onGlobalSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(doSearch, 250);
+    }
+
+    function doSearch() {
+      const q = document.getElementById('globalSearch').value.trim();
+      const resultsDiv = document.getElementById('searchResults');
+      const grid = document.getElementById('categoryGrid');
+      const toolsDiv = document.getElementById('quickTools')?.parentElement;
+
+      if (!q) {
+        resultsDiv.style.display = 'none';
+        grid.style.display = '';
+        if (toolsDiv) toolsDiv.style.display = '';
+        return;
+      }
+
+      const hits = filterByPermission(filterResources(allResources, q), currentUser);
+      resultsDiv.style.display = '';
+      grid.style.display = 'none';
+      if (toolsDiv) toolsDiv.style.display = 'none';
+      document.getElementById('resultCount').textContent = hits.length + ' 个结果';
+
+      const CAT_NAMES = { 1:'学习',2:'数据库',3:'研发机器',4:'AI',5:'测试',6:'软件资源',7:'运维',8:'工具' };
+      document.getElementById('resultGrid').innerHTML = hits.length === 0
+        ? '<div class="empty-state"><p>没有找到匹配的资源</p></div>'
+        : hits.map(r => `
           <a class="card resource-card" href="${r.url}" target="_blank" rel="noopener">
             <div class="rc-icon">🔗</div>
             <div class="rc-body">
               <div class="rc-title">${r.name}</div>
-              <div class="rc-desc">${r.description || ''}</div>
+              <div class="rc-desc">${CAT_NAMES[r.category_id] || ''} · ${r.description || ''}</div>
             </div>
           </a>
         `).join('');
-      } catch {
-        container.innerHTML = '';
-      }
     }
 
     async function init() {
@@ -167,21 +232,11 @@
         categories = await apiRequest('/categories');
       } catch { categories = []; }
 
-      // Enrich with icons/colors for cards
       const ICON_MAP = { '学习':'📚','数据库':'🗄️','研发机器':'🖥️','AI':'🤖','测试':'🧪','软件资源':'💿','运维':'⚙️','工具':'🛠️' };
       const COLOR_MAP = { '学习':'#4c8bf5','数据库':'#22c55e','研发机器':'#eab308','AI':'#a855f7','测试':'#ef4444','软件资源':'#06b6d4','运维':'#f97316','工具':'#ec4899' };
 
-      // Fetch category resource counts
-      const countPromises = categories.map(async c => {
-        try {
-          if (c.name === '数据库' || c.name === '研发机器') return { id: c.id, count: 0 };
-          const resources = await apiRequest(`/resources/${c.id}`);
-          return { id: c.id, count: resources.length };
-        } catch { return { id: c.id, count: 0 }; }
-      });
-      const counts = await Promise.all(countPromises);
-      const countMap = {};
-      counts.forEach(cc => { countMap[cc.id] = cc.count; });
+      await ensureCache();
+      const countMap = countByCategory();
 
       categories = categories.map(c => ({
         ...c,
@@ -192,9 +247,8 @@
 
       buildSidebar();
       renderCategories();
-      loadQuickTools();
+      renderQuickTools();
 
-      // Mobile toggle
       if (window.innerWidth <= 768) {
         document.getElementById('mobileMenuBtn').style.display = 'grid';
         document.getElementById('sidebar').classList.remove('collapsed');

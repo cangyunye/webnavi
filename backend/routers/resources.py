@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api", tags=["资源"])
 def can_read(current_user: User, category_name: str) -> bool:
     if current_user.role == "admin":
         return True
-    if current_user.role in ("learning_mentor", "ops_expert"):
+    if current_user.role == "ops_expert":
         return True
     return category_name in ["学习", "AI", "软件资源", "测试", "工具"]
 

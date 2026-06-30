@@ -43,7 +43,10 @@
             <h1 id="catName">加载中...</h1>
             <span class="badge badge-blue" id="catCount">0 个资源</span>
           </div>
-          <button class="btn btn-primary btn-sm" id="addBtn" onclick="openAddModal()">+ 添加资源</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="search-input" id="catSearch" placeholder="搜索当前分类…" oninput="filterCurrentResources()" style="width:200px;height:34px" />
+            <button class="btn btn-primary btn-sm" id="addBtn" onclick="openAddModal()">+ 添加资源</button>
+          </div>
         </div>
 
         <div class="resource-grid" id="resourceGrid">
@@ -86,11 +89,13 @@
   </div>
 
   <script src="js/api.js"></script>
+  <script src="js/search.js"></script>
   <script>
     initTheme();
+    var filteredResources = [];
     const ICON_MAP = { '学习':'📚','数据库':'🗄️','研发机器':'🖥️','AI':'🤖','测试':'🧪','软件资源':'💿','运维':'⚙️','工具':'🛠️' };
     const PUBLIC_CATS = { 1:'学习', 4:'AI', 5:'测试', 6:'软件资源', 8:'工具' };
-    function hasFullAccess() { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'learning_mentor' || currentUser.role === 'ops_expert'); }
+    function hasFullAccess() { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'ops_expert'); }
     function isRestricted(id) { return !PUBLIC_CATS[id] && !hasFullAccess(); }
     function canManageThis(id) {
       if (!currentUser || currentUser.role === 'guest') return false;
@@ -179,21 +184,32 @@
       document.getElementById('addBtn').style.display = currentCat && canManageThis(currentCat.id) ? '' : 'none';
     }
 
+    function filterCurrentResources() {
+      const q = document.getElementById('catSearch').value;
+      filteredResources = filterResources(resources, q);
+      renderResources();
+    }
+
     async function loadResources() {
       try {
         resources = await apiRequest(`/resources/${currentCat.id}`);
       } catch { resources = []; }
       document.getElementById('catCount').textContent = resources.length + ' 个资源';
+      filteredResources = resources;
       renderResources();
     }
 
     function renderResources() {
+      const data = filteredResources || resources;
       const grid = document.getElementById('resourceGrid');
-      if (resources.length === 0) {
-        grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>还没有资源，点击"添加资源"开始</p></div>';
+      if (data.length === 0) {
+        const hasSearch = !!document.getElementById('catSearch').value;
+        grid.innerHTML = hasSearch
+          ? '<div class="empty-state"><div class="empty-icon">🔍</div><p>没有匹配的资源</p></div>'
+          : '<div class="empty-state"><div class="empty-icon">📭</div><p>还没有资源，点击"添加资源"开始</p></div>';
         return;
       }
-      grid.innerHTML = resources.map(r => `
+      grid.innerHTML = data.map(r => `
         <a class="card resource-card" href="${r.url}" target="_blank" rel="noopener">
           <div class="rc-icon">🔗</div>
           <div class="rc-body">

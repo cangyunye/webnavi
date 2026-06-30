@@ -123,6 +123,17 @@
             <div class="user-count">共 <strong id="userCountDisplay">0</strong> 个用户</div>
             <button class="btn btn-primary btn-sm" onclick="openModal('addUserModal')">+ 添加用户</button>
           </div>
+          <div class="filter-bar" style="margin-bottom:12px">
+            <input class="search-input" id="userSearch" placeholder="搜索用户名…" oninput="renderUsers()" style="height:34px;width:200px" />
+            <select class="filter-select" id="userRoleFilter" onchange="renderUsers()" style="height:34px">
+              <option value="">全部角色</option>
+              <option value="guest">访客</option>
+              <option value="registered">注册用户</option>
+              <option value="learning_mentor">学习导师</option>
+              <option value="ops_expert">运维专家</option>
+              <option value="admin">管理员</option>
+            </select>
+          </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
@@ -296,6 +307,7 @@
   </div>
 
   <script src="js/api.js"></script>
+  <script src="js/search.js"></script>
   <script>
     initTheme();
     let users = [];
@@ -340,11 +352,15 @@
     /* ---- Users ---- */
     async function renderUsers() {
       try { users = await apiRequest('/admin/users'); } catch { users = []; }
-      const active = users.filter(u => u.id !== 0);
-      document.getElementById('userCountDisplay').textContent = active.length;
-      document.getElementById('userTotal').textContent = active.length;
+      const searchQ = document.getElementById('userSearch').value.trim();
+      const roleF = document.getElementById('userRoleFilter').value;
+      let filtered = users.filter(u => u.id !== 0);
+      if (searchQ) filtered = filterUsers(filtered, searchQ);
+      if (roleF) filtered = filtered.filter(u => u.role === roleF);
+      document.getElementById('userCountDisplay').textContent = filtered.length;
+      document.getElementById('userTotal').textContent = filtered.length;
       const tbody = document.getElementById('userTableBody');
-      tbody.innerHTML = active.map(u => {
+      tbody.innerHTML = filtered.map(u => {
         const isManaged = u.role === 'learning_mentor' || u.role === 'ops_expert';
         return `<tr>
         <td><strong>${u.username}</strong></td>
