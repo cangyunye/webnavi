@@ -447,6 +447,19 @@ h3 { font-size: 1.1rem; font-weight: 510; }
   background-position: right 8px center;
 }
 .filter-select:focus { outline: none; border-color: var(--accent); }
+.search-input {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 0.85rem;
+  min-width: 180px;
+  transition: border-color 0.15s;
+}
+.search-input:focus { outline: none; border-color: var(--accent); }
+.search-input::placeholder { color: var(--fg-3); }
 
 /* ---- Forms ---- */
 .form-group {
