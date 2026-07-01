@@ -152,6 +152,7 @@
     }
 
     let allResources = [];
+    let themeOptions = {};
 
     async function ensureCache() {
       let data = getCachedData();
@@ -164,19 +165,49 @@
       setCachedData(allResources);
     }
 
+    function renderResourceCardHTML(r, extraDesc) {
+      const initial = getAvatarInitial(r.name);
+      const isAdmin = currentUser && currentUser.role === 'admin';
+      const themeKey = r.theme_key || 'default';
+      return `<a class="card resource-card" href="${r.url}" target="_blank" rel="noopener" data-resource-id="${r.id}" data-theme-key="${themeKey}">
+          <div class="rc-avatar" ${isAdmin ? `onclick="event.preventDefault();event.stopPropagation();openThemeSelector(this, ${r.id}, '${themeKey}', themeOptions, onThemeUpdated)"` : ''}>${initial}</div>
+          <div class="rc-body">
+            <div class="rc-title">${r.name}</div>
+            <div class="rc-desc">${extraDesc ? extraDesc + ' · ' : ''}${r.description || ''}</div>
+          </div>
+        </a>`;
+    }
+
+    function applyThemesToCards(container) {
+      container.querySelectorAll('.resource-card[data-resource-id]').forEach(el => {
+        const themeKey = el.dataset.themeKey;
+        applyThemeToCard(el, themeKey, themeOptions);
+      });
+    }
+
+    function onThemeUpdated(resourceId, newThemeKey) {
+      const r = allResources.find(r => r.id === resourceId);
+      if (r) r.theme_key = newThemeKey === 'default' ? null : newThemeKey;
+      document.querySelectorAll(`.resource-card[data-resource-id="${resourceId}"]`).forEach(el => {
+        el.dataset.themeKey = newThemeKey;
+        applyThemeToCard(el, newThemeKey, themeOptions);
+        const avatar = el.querySelector('.rc-avatar');
+        if (avatar) {
+          const isAdmin = currentUser && currentUser.role === 'admin';
+          avatar.onclick = isAdmin ? (e) => {
+            e.preventDefault(); e.stopPropagation();
+            openThemeSelector(avatar, resourceId, newThemeKey, themeOptions, onThemeUpdated);
+          } : null;
+        }
+      });
+    }
+
     function renderQuickTools() {
       const tools = allResources.filter(r => r.category_id === 8);
       const container = document.getElementById('quickTools');
       if (tools.length === 0) { container.innerHTML = ''; return; }
-      container.innerHTML = tools.map(r => `
-        <a class="card resource-card" href="${r.url}" target="_blank" rel="noopener">
-          <div class="rc-icon">🔗</div>
-          <div class="rc-body">
-            <div class="rc-title">${r.name}</div>
-            <div class="rc-desc">${r.description || ''}</div>
-          </div>
-        </a>
-      `).join('');
+      container.innerHTML = tools.map(r => renderResourceCardHTML(r)).join('');
+      applyThemesToCards(container);
     }
 
     function countByCategory() {
@@ -213,15 +244,8 @@
       const CAT_NAMES = { 1:'学习',2:'数据库',3:'研发机器',4:'AI',5:'测试',6:'软件资源',7:'运维',8:'工具' };
       document.getElementById('resultGrid').innerHTML = hits.length === 0
         ? '<div class="empty-state"><p>没有找到匹配的资源</p></div>'
-        : hits.map(r => `
-          <a class="card resource-card" href="${r.url}" target="_blank" rel="noopener">
-            <div class="rc-icon">🔗</div>
-            <div class="rc-body">
-              <div class="rc-title">${r.name}</div>
-              <div class="rc-desc">${CAT_NAMES[r.category_id] || ''} · ${r.description || ''}</div>
-            </div>
-          </a>
-        `).join('');
+        : hits.map(r => renderResourceCardHTML(r, CAT_NAMES[r.category_id] || '')).join('');
+      applyThemesToCards(document.getElementById('resultGrid'));
     }
 
     async function init() {
@@ -231,6 +255,8 @@
       try {
         categories = await apiRequest('/categories');
       } catch { categories = []; }
+
+      themeOptions = await getThemeOptions();
 
       const ICON_MAP = { '学习':'📚','数据库':'🗄️','研发机器':'🖥️','AI':'🤖','测试':'🧪','软件资源':'💿','运维':'⚙️','工具':'🛠️' };
       const COLOR_MAP = { '学习':'#4c8bf5','数据库':'#22c55e','研发机器':'#eab308','AI':'#a855f7','测试':'#ef4444','软件资源':'#06b6d4','运维':'#f97316','工具':'#ec4899' };

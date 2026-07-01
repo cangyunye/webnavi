@@ -109,6 +109,46 @@
     let currentUser = null;
     let deleteTarget = null;
     let categories = [];
+    let themeOptions = {};
+
+    function renderResourceCardHTML(r) {
+      const initial = getAvatarInitial(r.name);
+      const isAdmin = currentUser && currentUser.role === 'admin';
+      const themeKey = r.theme_key || 'default';
+      const canManage = canManageThis(currentCat.id);
+      return `<a class="card resource-card" href="${r.url}" target="_blank" rel="noopener" data-resource-id="${r.id}" data-theme-key="${themeKey}">
+          <div class="rc-avatar" ${isAdmin ? `onclick="event.preventDefault();event.stopPropagation();openThemeSelector(this, ${r.id}, '${themeKey}', themeOptions, onThemeUpdated)"` : ''}>${initial}</div>
+          <div class="rc-body">
+            <div class="rc-title">${r.name}</div>
+            <div class="rc-desc">${r.description || ''}</div>
+          </div>
+          ${canManage ? `<button class="rc-delete" onclick="event.preventDefault();event.stopPropagation();openConfirm(${r.id})" title="删除">✕</button>` : ''}
+        </a>`;
+    }
+
+    function applyThemesToCards(container) {
+      container.querySelectorAll('.resource-card[data-resource-id]').forEach(el => {
+        const themeKey = el.dataset.themeKey;
+        applyThemeToCard(el, themeKey, themeOptions);
+      });
+    }
+
+    function onThemeUpdated(resourceId, newThemeKey) {
+      const r = resources.find(r => r.id === resourceId);
+      if (r) r.theme_key = newThemeKey === 'default' ? null : newThemeKey;
+      document.querySelectorAll(`.resource-card[data-resource-id="${resourceId}"]`).forEach(el => {
+        el.dataset.themeKey = newThemeKey;
+        applyThemeToCard(el, newThemeKey, themeOptions);
+        const avatar = el.querySelector('.rc-avatar');
+        if (avatar) {
+          const isAdmin = currentUser && currentUser.role === 'admin';
+          avatar.onclick = isAdmin ? (e) => {
+            e.preventDefault(); e.stopPropagation();
+            openThemeSelector(avatar, resourceId, newThemeKey, themeOptions, onThemeUpdated);
+          } : null;
+        }
+      });
+    }
 
     async function init() {
       currentUser = getUser();
@@ -117,6 +157,7 @@
       const id = parseInt(params.get('id') || '8');
 
       try { categories = await apiRequest('/categories'); } catch { categories = []; }
+      themeOptions = await getThemeOptions();
       currentCat = categories.find(c => c.id === id);
       if (!currentCat) { location.href = 'index.html'; return; }
 
@@ -209,20 +250,10 @@
           : '<div class="empty-state"><div class="empty-icon">📭</div><p>还没有资源，点击"添加资源"开始</p></div>';
         return;
       }
-      grid.innerHTML = data.map(r => `
-        <a class="card resource-card" href="${r.url}" target="_blank" rel="noopener">
-          <div class="rc-icon">🔗</div>
-          <div class="rc-body">
-            <div class="rc-title">${r.name}</div>
-            <div class="rc-desc">${r.description || ''}</div>
-          </div>
-          ${canManageThis(currentCat.id) ? `
-            <button class="rc-delete" onclick="event.preventDefault();event.stopPropagation();openConfirm(${r.id})" title="删除">✕</button>
-          ` : ''}
-        </a>
-      `).join('') + `
+      grid.innerHTML = data.map(r => renderResourceCardHTML(r)).join('') + `
         ${canManageThis(currentCat.id) ? '<div class="add-card" onclick="openAddModal()">+</div>' : ''}
       `;
+      applyThemesToCards(grid);
     }
 
     function openAddModal() { document.getElementById('addModal').classList.add('open'); }
