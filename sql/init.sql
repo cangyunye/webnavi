@@ -4,6 +4,7 @@ SET CHARACTER SET utf8mb4;
 CREATE DATABASE IF NOT EXISTS resource_nav DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE resource_nav;
 
+DROP TABLE IF EXISTS resource_themes;
 DROP TABLE IF EXISTS api_key_logs;
 DROP TABLE IF EXISTS api_keys;
 DROP TABLE IF EXISTS credentials;
@@ -92,6 +93,13 @@ CREATE TABLE resources (
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE resource_themes (
+    resource_id INT NOT NULL PRIMARY KEY,
+    theme_key   VARCHAR(50) NOT NULL DEFAULT 'default',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE users (
@@ -405,3 +413,16 @@ INSERT INTO enum_items (enum_type, enum_value, enum_label, color) VALUES
 ('log_level', 'INFO', '信息', '#3b82f6'),
 ('log_level', 'DEBUG', '调试', '#9ca3af'),
 ('log_level', 'TRACE', '跟踪', '#6b7280');
+
+-- 枚举项: 资源主题
+INSERT INTO enum_items (enum_type, enum_value, enum_label, sort_order, color, icon) VALUES
+('resource_theme', 'default', '云白', 0, '#ffffff', '☁️'),
+('resource_theme', 'red', '高优先', 1, '#ef4444', '🔴'),
+('resource_theme', 'blue', '频率中等', 2, '#3b82f6', '🔵'),
+('resource_theme', 'green', '通用', 3, '#22c55e', '🟢'),
+('resource_theme', 'yellow', '第三方工具', 4, '#eab308', '🟡'),
+('resource_theme', 'purple', '自定义', 5, '#a855f7', '🟣'),
+('resource_theme', 'orange', '重点项目', 6, '#f97316', '🟠'),
+('resource_theme', 'teal', '内部服务', 7, '#14b8a6', '🩵'),
+('resource_theme', 'pink', '待分类', 8, '#ec4899', '🩷'),
+('resource_theme', 'gray', '归档', 9, '#6b7280', '⚪');
