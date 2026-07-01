@@ -199,3 +199,13 @@ class EnumItem(Base):
     icon = Column(String(50))
     create_time = Column(DateTime, server_default=func.now())
     update_time = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class ResourceTheme(Base):
+    __tablename__ = "resource_themes"
+
+    resource_id = Column(Integer, ForeignKey("resources.id", ondelete="CASCADE"), primary_key=True)
+    theme_key = Column(String(50), nullable=False, default="default")
+    update_time = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    resource = relationship("Resource", backref="theme")

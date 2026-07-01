@@ -31,6 +31,7 @@ class ResourceCreate(ResourceBase):
 class ResourceResponse(ResourceBase):
     id: int
     category_id: int
+    theme_key: Optional[str] = None
     create_time: Optional[datetime] = None
     update_time: Optional[datetime] = None
 
@@ -324,6 +325,19 @@ class EnumItemResponse(EnumItemBase):
     enum_value: str
     enum_label: str
     create_time: Optional[datetime] = None
+    update_time: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ResourceThemeUpdate(BaseModel):
+    theme_key: str
+
+
+class ResourceThemeResponse(BaseModel):
+    resource_id: int
+    theme_key: str
     update_time: Optional[datetime] = None
 
     class Config:

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 
 from database import get_db
-from models import DevMachine, DbInstance, Resource, User, Organization, Owner, Category
+from models import DevMachine, DbInstance, Resource, User, Organization, Owner, Category, ResourceTheme
 from schemas import (
     DevMachineResponse,
     DevMachineCreate,
@@ -273,13 +273,30 @@ def get_resources(
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="访客用户没有访问此分类的权限，请先登录")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有访问此分类的权限")
 
-    query = db.query(Resource).filter(Resource.category_id == category_id)
+    query = db.query(Resource, ResourceTheme.theme_key).outerjoin(
+        ResourceTheme, Resource.id == ResourceTheme.resource_id
+    ).filter(Resource.category_id == category_id)
 
     if resource_status is not None:
         query = query.filter(Resource.status == resource_status)
 
-    resources = query.order_by(Resource.id.desc()).all()
-    return resources
+    results = query.order_by(Resource.id.desc()).all()
+    
+    response = []
+    for resource, theme_key in results:
+        response.append(ResourceResponse(
+            id=resource.id,
+            category_id=resource.category_id,
+            name=resource.name,
+            url=resource.url,
+            description=resource.description,
+            status=resource.status,
+            theme_key=theme_key,
+            create_time=resource.create_time,
+            update_time=resource.update_time
+        ))
+    
+    return response
 
 
 @router.post("/resources", response_model=ResourceResponse)
@@ -306,7 +323,18 @@ def create_resource(
     db.add(db_resource)
     db.commit()
     db.refresh(db_resource)
-    return db_resource
+    
+    return ResourceResponse(
+        id=db_resource.id,
+        category_id=db_resource.category_id,
+        name=db_resource.name,
+        url=db_resource.url,
+        description=db_resource.description,
+        status=db_resource.status,
+        theme_key=None,
+        create_time=db_resource.create_time,
+        update_time=db_resource.update_time
+    )
 
 
 @router.delete("/resources/{resource_id}")
